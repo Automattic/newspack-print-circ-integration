@@ -20,11 +20,19 @@ class Initializer {
 	public static function init() {
 		// Setup Hooks & Filters.
 		add_action( 'admin_notices', array( __CLASS__, 'show_admin_notice__error' ) );
+		add_action( 'init', array( __CLASS__, 'temp_process_csv' ) );
 
 		Settings::init();
+	}
 
+	/**
+	 * Temporary function to process the CSV file.
+	 */
+	public static function temp_process_csv() {
 		$import_module = new Newspack_Print_Import();
-		$import_module->fetch_csv_file();
+		// phpcs:ignore Squiz.PHP.CommentedOutCode.Found
+		// $import_module->fetch_csv_file();
+		// $import_module->import_users();
 	}
 
 	/**

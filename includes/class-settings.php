@@ -22,17 +22,17 @@ class Settings {
 	/**
 	 * TBD. Import path for the CSV file.
 	 */
-	const CSV_IMPORT_PATH_OPTION               = 'csv_import_path';
+	const CSV_IMPORT_PATH_OPTION = 'csv_import_path';
 
 	/**
 	 * CSV Mapping settings.
 	 */
-	const CSV_MAPPING_OPTION                   = 'csv_mapping';
+	const CSV_MAPPING_OPTION = 'csv_mapping';
 
 	/**
 	 * Default role to be granted to the imported users.
 	 */
-	const DEFAULT_ROLES_OPTION                 = 'default_roles';
+	const DEFAULT_ROLES_OPTION = 'default_roles';
 
 	/**
 	 * TBD. Default subscriptions to be granted to the imported users.
@@ -42,18 +42,18 @@ class Settings {
 	/**
 	 * TBD. Default memberships to be granted to the imported users.
 	 */
-	const DEFAULT_MEMBERSHIPS_OPTION           = 'new_users_granted_membership_plan_id';
+	const DEFAULT_MEMBERSHIPS_OPTION = 'new_users_granted_membership_plan_id';
 
 	/**
 	 * TBD. Users with these plans will be exported to the Print Circulation System.
 	 */
-	const ALLOWED_MEMBERSHIPS_OPTION           = 'allowed_membership_plan_ids';
+	const ALLOWED_MEMBERSHIPS_OPTION = 'allowed_membership_plan_ids';
 
 	/**
-	 * TBD. Replaces CSV mapping settings.
+	 * Replaces CSV mapping settings.
 	 */
-	const IMPORT_TRANSFORMATIONS_OPTION        = 'import_transformations';
-	const EXPORT_TRANSFORMATIONS_OPTION        = 'export_transformations';
+	const IMPORT_TRANSFORMATIONS_OPTION = 'import_transformations';
+	const EXPORT_TRANSFORMATIONS_OPTION = 'export_transformations';
 
 	/**
 	 * Runs the initialization.
@@ -91,7 +91,7 @@ class Settings {
 			self::SETTINGS_OPTION,
 			'newspack_print_general_settings',
 			[
-				'label_for' => self::CSV_IMPORT_PATH_OPTION,
+				'label_for'   => self::CSV_IMPORT_PATH_OPTION,
 				'description' => __( 'Path to the CSV file for import.', 'newspack-print' ),
 			]
 		);
@@ -103,8 +103,32 @@ class Settings {
 			self::SETTINGS_OPTION,
 			'newspack_print_general_settings',
 			[
-				'label_for' => self::CSV_MAPPING_OPTION,
+				'label_for'   => self::CSV_MAPPING_OPTION,
 				'description' => __( 'Field mapping in JSON format. Make sure to include "circulation_id" as the unique identifier for the mapping', 'newspack-print' ),
+			]
+		);
+
+		add_settings_field(
+			self::IMPORT_TRANSFORMATIONS_OPTION,
+			__( 'Import Transformations', 'newspack-print' ),
+			[ __CLASS__, 'render_textarea_field' ],
+			self::SETTINGS_OPTION,
+			'newspack_print_general_settings',
+			[
+				'label_for'   => self::IMPORT_TRANSFORMATIONS_OPTION,
+				'description' => __( 'Transformations to apply to the imported data in JSON format.', 'newspack-print' ),
+			]
+		);
+
+		add_settings_field(
+			self::EXPORT_TRANSFORMATIONS_OPTION,
+			__( 'Export Transformations', 'newspack-print' ),
+			[ __CLASS__, 'render_textarea_field' ],
+			self::SETTINGS_OPTION,
+			'newspack_print_general_settings',
+			[
+				'label_for'   => self::EXPORT_TRANSFORMATIONS_OPTION,
+				'description' => __( 'Transformations to apply to the exported data in JSON format.', 'newspack-print' ),
 			]
 		);
 
@@ -197,30 +221,35 @@ class Settings {
 
 	/**
 	 * Render a text field.
+	 *
+	 * @param array $args Field arguments.
+	 * @return void
 	 */
 	public static function render_text_field( $args ) {
 		$options = get_option( self::SETTINGS_OPTION );
-		$value = isset( $options[ $args['label_for'] ] ) ? esc_attr( $options[ $args['label_for'] ] ) : '';
 		?>
-		<input type="text" id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( self::SETTINGS_OPTION . '[' . $args['label_for'] . ']' ); ?>" value="<?php echo $value; ?>" class="regular-text">
+		<input type="text" id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( self::SETTINGS_OPTION . '[' . $args['label_for'] . ']' ); ?>" value="<?php echo esc_attr( $options[ $args['label_for'] ] ); ?>" class="regular-text">
 		<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
 		<?php
 	}
 
 	/**
 	 * Render a textarea field.
+	 *
+	 * @param array $args Field arguments.
 	 */
 	public static function render_textarea_field( $args ) {
 		$options = get_option( self::SETTINGS_OPTION );
-		$value = isset( $options[ $args['label_for'] ] ) ? esc_textarea( $options[ $args['label_for'] ] ) : '';
 		?>
-		<textarea id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( self::SETTINGS_OPTION . '[' . $args['label_for'] . ']' ); ?>" class="large-text" rows="5"><?php echo $value; ?></textarea>
+		<textarea id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( self::SETTINGS_OPTION . '[' . $args['label_for'] . ']' ); ?>" class="large-text" rows="5"><?php echo esc_textarea( $options[ $args['label_for'] ] ); ?></textarea>
 		<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
 		<?php
 	}
 
 	/**
 	 * Render a multiselect field.
+	 *
+	 * @param array $args Field arguments.
 	 */
 	public static function render_multiselect_field( $args ) {
 		$options = get_option( self::SETTINGS_OPTION );
@@ -228,7 +257,7 @@ class Settings {
 		?>
 		<select id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( self::SETTINGS_OPTION . '[' . $args['label_for'] . '][]' ); ?>" multiple class="regular-text">
 			<?php foreach ( $args['options'] as $key => $label ) : ?>
-				<option value="<?php echo esc_attr( $key ); ?>" <?php selected( in_array( $key, $values, false ) ); ?>>
+				<option value="<?php echo esc_attr( $key ); ?>" <?php selected( in_array( $key, $values, false ) ); // phpcs:ignore WordPress.PHP.StrictInArray.FoundNonStrictFalse ?>>
 					<?php echo esc_html( $label ); ?>
 				</option>
 			<?php endforeach; ?>
@@ -239,6 +268,9 @@ class Settings {
 
 	/**
 	 * Sanitize settings.
+	 *
+	 * @param array $input Input settings.
+	 * @return array Sanitized settings.
 	 */
 	public static function sanitize_settings( $input ) {
 		$sanitized = [];
@@ -268,6 +300,20 @@ class Settings {
 			$sanitized[ self::DEFAULT_MEMBERSHIPS_OPTION ] = array_map( 'sanitize_text_field', (array) $input[ self::DEFAULT_MEMBERSHIPS_OPTION ] );
 		}
 
+		// Sanitize import transformations.
+		if ( isset( $input[ self::IMPORT_TRANSFORMATIONS_OPTION ] ) ) {
+			// Check if the input is a valid callable.
+			$import_transformations = $input[ self::IMPORT_TRANSFORMATIONS_OPTION ];
+			/**
+			 * TODO: eval is a huge security risk! need to find a better way to do this.
+			 */
+			$import_transformations = eval( 'return ' . $import_transformations . ';' ); // phpcs:ignore Squiz.PHP.Eval.Discouraged
+
+			if ( is_callable( $import_transformations ) ) {
+				$sanitized[ self::IMPORT_TRANSFORMATIONS_OPTION ] = sanitize_text_field( $input[ self::IMPORT_TRANSFORMATIONS_OPTION ] );
+			}
+		}
+
 		return $sanitized;
 	}
 
@@ -291,10 +337,12 @@ class Settings {
 			return [];
 		}
 
-		$subscriptions = wc_get_products( [
-			'type'  => [ 'subscription', 'variable-subscription' ],
-			'limit' => -1,
-		] );
+		$subscriptions = wc_get_products(
+			[
+				'type'  => [ 'subscription', 'variable-subscription' ],
+				'limit' => -1,
+			]
+		);
 
 		$options = [];
 		foreach ( $subscriptions as $subscription ) {
@@ -317,5 +365,21 @@ class Settings {
 			$options[ $membership->get_id() ] = $membership->get_name();
 		}
 		return $options;
+	}
+
+	/**
+	 * Get a setting value.
+	 *
+	 * @param string $option Option name.
+	 * @return mixed|null Option value.
+	 */
+	public static function get_setting( $option ) {
+		$options = get_option( self::SETTINGS_OPTION );
+
+		if ( ! isset( $options[ $option ] ) ) {
+			return null;
+		}
+
+		return $options[ $option ];
 	}
 }

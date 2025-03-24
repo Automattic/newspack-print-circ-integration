@@ -20,6 +20,42 @@ class Settings {
 	const SETTINGS_OPTION = 'newspack_print_circ_settings';
 
 	/**
+	 * TBD. Import path for the CSV file.
+	 */
+	const CSV_IMPORT_PATH_OPTION               = 'csv_import_path';
+
+	/**
+	 * CSV Mapping settings.
+	 */
+	const CSV_MAPPING_OPTION                   = 'csv_mapping';
+
+	/**
+	 * Default role to be granted to the imported users.
+	 */
+	const DEFAULT_ROLES_OPTION                 = 'default_roles';
+
+	/**
+	 * TBD. Default subscriptions to be granted to the imported users.
+	 */
+	const DEFAULT_SUBSCRIPTION_PRODUCTS_OPTION = 'default_subscription_products';
+
+	/**
+	 * TBD. Default memberships to be granted to the imported users.
+	 */
+	const DEFAULT_MEMBERSHIPS_OPTION           = 'new_users_granted_membership_plan_id';
+
+	/**
+	 * TBD. Users with these plans will be exported to the Print Circulation System.
+	 */
+	const ALLOWED_MEMBERSHIPS_OPTION           = 'allowed_membership_plan_ids';
+
+	/**
+	 * TBD. Replaces CSV mapping settings.
+	 */
+	const IMPORT_TRANSFORMATIONS_OPTION        = 'import_transformations';
+	const EXPORT_TRANSFORMATIONS_OPTION        = 'export_transformations';
+
+	/**
 	 * Runs the initialization.
 	 */
 	public static function init() {
@@ -32,7 +68,14 @@ class Settings {
 	 * Register settings using WordPress Settings API.
 	 */
 	public static function register_settings() {
-		register_setting( self::SETTINGS_OPTION, self::SETTINGS_OPTION );
+		register_setting(
+			self::SETTINGS_OPTION,
+			self::SETTINGS_OPTION,
+			[
+				'type'              => 'array',
+				'sanitize_callback' => [ __CLASS__, 'sanitize_settings' ],
+			]
+		);
 
 		add_settings_section(
 			'newspack_print_general_settings',
@@ -42,28 +85,82 @@ class Settings {
 		);
 
 		add_settings_field(
-			'csv_import_path',
+			self::CSV_IMPORT_PATH_OPTION,
 			__( 'CSV Import Path', 'newspack-print' ),
 			[ __CLASS__, 'render_text_field' ],
 			self::SETTINGS_OPTION,
 			'newspack_print_general_settings',
 			[
-				'label_for' => 'csv_import_path',
+				'label_for' => self::CSV_IMPORT_PATH_OPTION,
 				'description' => __( 'Path to the CSV file for import.', 'newspack-print' ),
 			]
 		);
 
 		add_settings_field(
-			'csv_mapping',
+			self::CSV_MAPPING_OPTION,
 			__( 'CSV Mapping', 'newspack-print' ),
 			[ __CLASS__, 'render_textarea_field' ],
 			self::SETTINGS_OPTION,
 			'newspack_print_general_settings',
 			[
-				'label_for' => 'csv_mapping',
+				'label_for' => self::CSV_MAPPING_OPTION,
 				'description' => __( 'Field mapping in JSON format. Make sure to include "circulation_id" as the unique identifier for the mapping', 'newspack-print' ),
 			]
 		);
+
+		// Access Criteria Section.
+		add_settings_section(
+			'newspack_print_access_criteria',
+			__( 'Access Criteria', 'newspack-print' ),
+			null,
+			self::SETTINGS_OPTION
+		);
+
+		// Allowed Roles.
+		add_settings_field(
+			self::DEFAULT_ROLES_OPTION,
+			__( 'Default User Roles', 'newspack-print' ),
+			[ __CLASS__, 'render_multiselect_field' ],
+			self::SETTINGS_OPTION,
+			'newspack_print_access_criteria',
+			[
+				'label_for'   => self::DEFAULT_ROLES_OPTION,
+				'description' => __( 'Select roles to be granted to the imported users.', 'newspack-print' ),
+				'options'     => self::get_roles_options(),
+			]
+		);
+
+		// Allowed Subscriptions.
+		if ( class_exists( 'WC_Subscriptions' ) ) {
+			add_settings_field(
+				self::DEFAULT_SUBSCRIPTION_PRODUCTS_OPTION,
+				__( 'Default user subscriptions', 'newspack-print' ),
+				[ __CLASS__, 'render_multiselect_field' ],
+				self::SETTINGS_OPTION,
+				'newspack_print_access_criteria',
+				[
+					'label_for'   => self::DEFAULT_SUBSCRIPTION_PRODUCTS_OPTION,
+					'description' => __( 'Select WooCommerce Subscriptions to be granted to the imported users.', 'newspack-print' ),
+					'options'     => self::get_woocommerce_subscription_products_options(),
+				]
+			);
+		}
+
+		// Allowed Memberships.
+		if ( class_exists( 'WC_Memberships' ) ) {
+			add_settings_field(
+				self::DEFAULT_MEMBERSHIPS_OPTION,
+				__( 'Default user memberships', 'newspack-print' ),
+				[ __CLASS__, 'render_multiselect_field' ],
+				self::SETTINGS_OPTION,
+				'newspack_print_access_criteria',
+				[
+					'label_for'   => self::DEFAULT_MEMBERSHIPS_OPTION,
+					'description' => __( 'Select WooCommerce Memberships to be granted to the imported users.', 'newspack-print' ),
+					'options'     => self::get_woocommerce_memberships_options(),
+				]
+			);
+		}
 	}
 
 	/**
@@ -120,5 +217,105 @@ class Settings {
 		<textarea id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( self::SETTINGS_OPTION . '[' . $args['label_for'] . ']' ); ?>" class="large-text" rows="5"><?php echo $value; ?></textarea>
 		<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
 		<?php
+	}
+
+	/**
+	 * Render a multiselect field.
+	 */
+	public static function render_multiselect_field( $args ) {
+		$options = get_option( self::SETTINGS_OPTION );
+		$values  = isset( $options[ $args['label_for'] ] ) ? (array) $options[ $args['label_for'] ] : [];
+		?>
+		<select id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( self::SETTINGS_OPTION . '[' . $args['label_for'] . '][]' ); ?>" multiple class="regular-text">
+			<?php foreach ( $args['options'] as $key => $label ) : ?>
+				<option value="<?php echo esc_attr( $key ); ?>" <?php selected( in_array( $key, $values, false ) ); ?>>
+					<?php echo esc_html( $label ); ?>
+				</option>
+			<?php endforeach; ?>
+		</select>
+		<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Sanitize settings.
+	 */
+	public static function sanitize_settings( $input ) {
+		$sanitized = [];
+
+		// Sanitize CSV import path.
+		if ( isset( $input[ self::CSV_IMPORT_PATH_OPTION ] ) ) {
+			$sanitized[ self::CSV_IMPORT_PATH_OPTION ] = sanitize_url( $input[ self::CSV_IMPORT_PATH_OPTION ] );
+		}
+
+		// Sanitize CSV mapping.
+		if ( isset( $input[ self::CSV_MAPPING_OPTION ] ) ) {
+			$sanitized[ self::CSV_MAPPING_OPTION ] = sanitize_text_field( $input[ self::CSV_MAPPING_OPTION ] );
+		}
+
+		// Sanitize allowed roles.
+		if ( isset( $input[ self::DEFAULT_ROLES_OPTION ] ) ) {
+			$sanitized[ self::DEFAULT_ROLES_OPTION ] = array_map( 'sanitize_text_field', (array) $input[ self::DEFAULT_ROLES_OPTION ] );
+		}
+
+		// Sanitize allowed subscriptions.
+		if ( isset( $input[ self::DEFAULT_SUBSCRIPTION_PRODUCTS_OPTION ] ) ) {
+			$sanitized[ self::DEFAULT_SUBSCRIPTION_PRODUCTS_OPTION ] = array_map( 'sanitize_text_field', (array) $input[ self::DEFAULT_SUBSCRIPTION_PRODUCTS_OPTION ] );
+		}
+
+		// Sanitize allowed memberships.
+		if ( isset( $input[ self::DEFAULT_MEMBERSHIPS_OPTION ] ) ) {
+			$sanitized[ self::DEFAULT_MEMBERSHIPS_OPTION ] = array_map( 'sanitize_text_field', (array) $input[ self::DEFAULT_MEMBERSHIPS_OPTION ] );
+		}
+
+		return $sanitized;
+	}
+
+	/**
+	 * Get WordPress roles.
+	 */
+	private static function get_roles_options() {
+		$roles = wp_roles()->roles;
+		$options = [];
+		foreach ( $roles as $key => $role ) {
+			$options[ $key ] = $role['name'];
+		}
+		return $options;
+	}
+
+	/**
+	 * Get WooCommerce Subscriptions.
+	 */
+	private static function get_woocommerce_subscription_products_options() {
+		if ( ! class_exists( 'WC_Subscriptions' ) ) {
+			return [];
+		}
+
+		$subscriptions = wc_get_products( [
+			'type'  => [ 'subscription', 'variable-subscription' ],
+			'limit' => -1,
+		] );
+
+		$options = [];
+		foreach ( $subscriptions as $subscription ) {
+			$options[ $subscription->get_id() ] = $subscription->get_name();
+		}
+		return $options;
+	}
+
+	/**
+	 * Get WooCommerce Memberships.
+	 */
+	private static function get_woocommerce_memberships_options() {
+		if ( ! class_exists( 'WC_Memberships' ) ) {
+			return [];
+		}
+
+		$memberships = wc_memberships_get_membership_plans();
+		$options = [];
+		foreach ( $memberships as $membership ) {
+			$options[ $membership->get_id() ] = $membership->get_name();
+		}
+		return $options;
 	}
 }

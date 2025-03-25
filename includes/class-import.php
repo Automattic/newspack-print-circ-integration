@@ -123,17 +123,19 @@ class Import {
 			return new WP_Error( 'error', 'No CSV file to import.' );
 		}
 
+		// Reset the file pointer.
+		rewind( $csv_file );
+
 		// Get the header.
 		$header = fgetcsv( $csv_file );
 
-		// Read the CSV file.
+		// Skip rows until the offset is reached.
 		$line = 0;
-		while ( ( $row = fgetcsv( $csv_file ) ) !== false ) {
+		while ( $line < $offset && ( $row = fgetcsv( $csv_file ) ) !== false ) {
 			$line++;
-			if ( $line < $offset ) {
-				continue;
-			}
+		}
 
+		while ( ( $row = fgetcsv( $csv_file ) ) !== false ) {
 			// Create an associative array.
 			$row = array_combine( $header, $row );
 
@@ -142,8 +144,6 @@ class Import {
 				break;
 			}
 		}
-
-		$this->clean_up();
 
 		return $users;
 	}

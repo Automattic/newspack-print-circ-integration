@@ -69,7 +69,7 @@ class Import {
 
 		// Create a temporary CSV file.
 		$temp_directory = get_temp_dir();
-		$csv_file = fopen( $temp_directory . $this->csv_handle, 'w' ); // phpcs:ignore
+		$csv_file       = fopen( $temp_directory . $this->csv_handle, 'w+' ); // phpcs:ignore
 
 		if ( ! $csv_file ) {
 			return new WP_Error( 'error', 'Failed to open CSV file for writing.' );

@@ -100,7 +100,12 @@ class Newspack_Fields {
 	 */
 	public static function get_field( $slug ) {
 		$fields = self::get_fields();
-		return $fields[ $slug ] ?? null;
+		
+		if ( isset( $fields[ $slug ] ) ) {
+			return $fields[ $slug ];
+		}
+
+		return [];
 	}
 
 	/**
@@ -137,10 +142,10 @@ class Newspack_Fields {
 		$field = self::get_field( $slug );
 
 		// Get the field value based on the field type.
-		if ( 'user_meta' === $field['type'] ) {
+		if ( ! empty( $field['type'] ) && 'user_meta' === $field['type'] ) {
 			// If its a user meta field.
 			return get_user_meta( $user_id, $field['db_field'], true );
-		} elseif ( 'user_prop' === $field['type'] ) {
+		} elseif ( ! empty( $field['type'] ) && 'user_prop' === $field['type'] ) {
 			// If its a user property.
 			$user = get_user_by( 'id', $user_id );
 			return $user->{$field['db_field']};
@@ -170,10 +175,10 @@ class Newspack_Fields {
 		$field = self::get_field( $slug );
 
 		// Set the field value based on the field type.
-		if ( 'user_meta' === $field['type'] ) {
+		if ( ! empty( $field['type'] ) && 'user_meta' === $field['type'] ) {
 			// Store as a user meta field.
 			update_user_meta( $user_id, $field['db_field'], $value );
-		} elseif ( 'user_prop' === $field['type'] ) {
+		} elseif ( ! empty( $field['type'] ) && 'user_prop' === $field['type'] ) {
 			// Store as a user property.
 			$user = get_user_by( 'id', $user_id );
 			$user->{$field['db_field']} = $value;

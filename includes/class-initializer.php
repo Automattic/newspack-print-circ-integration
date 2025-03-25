@@ -29,10 +29,24 @@ class Initializer {
 	 * Temporary function to process the CSV file.
 	 */
 	public static function temp_process_csv() {
-		$import_module = new Newspack_Print_Import();
-		// phpcs:ignore Squiz.PHP.CommentedOutCode.Found
-		// $import_module->fetch_csv_file();
-		// $import_module->import_users();
+		// phpcs:ignore WordPress.Security.NonceVerification
+		if ( isset( $_GET['process_csv'] ) && current_user_can( 'manage_options' ) ) {
+			$import_module = new Newspack_Print_Import();
+			$fetch_csv_result = $import_module->fetch_csv_file();
+			if ( is_wp_error( $fetch_csv_result ) ) {
+				// TODO: Log error.
+				return;
+			}
+
+			// Import users.
+			$import_result = $import_module->import_users();
+			if ( is_wp_error( $import_result ) ) {
+				// TODO: Log error.
+				return;
+			}
+
+			$import_module->clean_up();
+		}
 	}
 
 	/**

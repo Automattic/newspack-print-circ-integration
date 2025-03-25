@@ -7,16 +7,25 @@
 
 namespace Newspack\PrintCirculationIntegration;
 
+use WP_Error;
+
 /**
  * Importer class to handle the CSV import.
  */
 class Import {
 	/**
-	 * CSV file handle.
+	 * CSV file.
 	 *
 	 * @var resource
 	 */
 	private $csv_file;
+
+	/**
+	 * CSV file handle.
+	 *
+	 * @var string
+	 */
+	private $csv_handle = 'newspack-print-circ-import.csv';
 
 	/**
 	 * Set the CSV file handle.
@@ -28,21 +37,50 @@ class Import {
 	}
 
 	/**
-	 * Fetch the CSV file from the URL.
-	 * TODO: This is temporary till the remote file fetching logic is implemented.
+	 * Cleanup function.
+	 */
+	public function clean_up() {
+		if ( is_resource( $this->csv_file ) ) {
+			// Safely close the file and delete it.
+			fclose( $this->csv_file );
+			unlink( get_temp_dir() . $this->csv_handle ); // phpcs:ignore
+		}
+	}
+
+	/**
+	 * Fetch the CSV file from the URL and set the CSV file handle.
+	 * 
+	 * @return bool|WP_Error True if the CSV file was fetched successfully, WP_Error otherwise.
 	 */
 	public function fetch_csv_file() {
 		// Fetch the CSV file from the URL.
 		$csv_path = Settings::get_setting( Settings::CSV_IMPORT_PATH_OPTION );
+		$response = wp_remote_get( $csv_path ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get
 
-		// Open the file in read mode.
-		$csv_file = fopen( $csv_path, 'r' ); // phpcs:ignore
-		if ( ! $csv_file ) {
-			error_log( 'Failed to open CSV file for reading: ' . $csv_path ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			return;
+		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+			return new WP_Error( 'error', 'Failed to fetch the CSV file.' );
 		}
 
+		$body = wp_remote_retrieve_body( $response );
+
+		if ( empty( $body ) ) {
+			return new WP_Error( 'error', 'Empty CSV file.' );
+		}
+
+		// Create a temporary CSV file.
+		$temp_directory = get_temp_dir();
+		$csv_file = fopen( $temp_directory . $this->csv_handle, 'w' ); // phpcs:ignore
+
+		if ( ! $csv_file ) {
+			return new WP_Error( 'error', 'Failed to open CSV file for writing.' );
+		}
+
+		// Write the CSV file.
+		fwrite( $csv_file, $body ); // phpcs:ignore
+		rewind( $csv_file );
 		$this->set_csv_file( $csv_file );
+
+		return true;
 	}
 
 	/**
@@ -50,15 +88,23 @@ class Import {
 	 *
 	 * @param int $limit  Number of users to import.
 	 * @param int $offset Offset.
+	 *
+	 * @return bool|WP_Error True if the users were imported successfully, WP_Error otherwise.
 	 */
 	public function import_users( $limit = 100, $offset = 0 ) {
 
 		$users = self::get_users_to_import( $limit, $offset );
 
+		if ( is_wp_error( $users ) ) {
+			return $users;
+		}
+
 		foreach ( $users as $user ) {
 			$user = Import_Parser::parse_line( $user );
 			self::process_user( $user );
 		}
+
+		return true;
 	}
 
 	/**
@@ -66,14 +112,15 @@ class Import {
 	 *
 	 * @param int $limit  Number of users to import.
 	 * @param int $offset Offset.
+	 *
+	 * @return array|WP_Error Users to import. WP_Error if there was an error.
 	 */
 	public function get_users_to_import( $limit = 100, $offset = 0 ) {
 
 		$users = [];
 		$csv_file = $this->csv_file;
 		if ( ! $csv_file ) {
-			error_log( 'Failed to open CSV file for reading.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			return $users;
+			return new WP_Error( 'error', 'No CSV file to import.' );
 		}
 
 		// Get the header.
@@ -96,7 +143,7 @@ class Import {
 			}
 		}
 
-		fclose( $csv_file );
+		$this->clean_up();
 
 		return $users;
 	}
@@ -166,7 +213,9 @@ class Import {
 
 		// Populate the user fields.
 		foreach ( $user as $key => $value ) {
-			Newspack_Fields::set_field_value( $key, $user_id, $value );
+			if ( ! empty( $value ) ) {
+				Newspack_Fields::set_field_value( $key, $user_id, $value );
+			}
 		}
 
 		return $user_id;
@@ -177,15 +226,19 @@ class Import {
 	 *
 	 * @param int   $user_id User ID.
 	 * @param array $user User data.
+	 *
+	 * @return bool|WP_Error True if the user was updated successfully, WP_Error otherwise.
 	 */
 	public static function update_user( $user_id, $user ) {
 		if ( empty( $user_id ) || empty( $user ) || ! is_array( $user ) ) {
-			return;
+			return new WP_Error( 'error', 'Invalid user data.' );
 		}
 
 		foreach ( $user as $key => $value ) {
 			Newspack_Fields::set_field_value( $key, $user_id, $value );
 		}
+
+		return true;
 	}
 
 	/**
@@ -199,7 +252,12 @@ class Import {
 
 		// Update the user if required.
 		if ( self::should_update_user( $user_id ) ) {
-			self::update_user( $user_id, $user );
+
+			if ( ! is_wp_error( self::update_user( $user_id, $user ) ) ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf
+				// TODO: Log the user update.
+			} else { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedElse
+				// TODO: Log the user update failure.
+			}
 		}
 	}
 

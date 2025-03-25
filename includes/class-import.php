@@ -32,14 +32,8 @@ class Import {
 	 * TODO: This is temporary till the remote file fetching logic is implemented.
 	 */
 	public function fetch_csv_file() {
-		/**
-		 * TODO: This is temporary till the remote file fetching logic is implemented.
-		 */
-		$csv_path = WP_PLUGIN_DIR . '/' . NEWSPACK_PRINT_CIRC_INTEGRATION_PLUGIN_DIR . '/temp/Test_Subscriber_Export_List.csv';
-		if ( ! file_exists( $csv_path ) ) {
-			error_log( 'Failed to open CSV file for writing: ' . $csv_path ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			return;
-		}
+		// Fetch the CSV file from the URL.
+		$csv_path = Settings::get_setting( Settings::CSV_IMPORT_PATH_OPTION );
 
 		// Open the file in read mode.
 		$csv_file = fopen( $csv_path, 'r' ); // phpcs:ignore

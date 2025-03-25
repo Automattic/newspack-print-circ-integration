@@ -50,7 +50,7 @@ class Settings {
 	const ALLOWED_MEMBERSHIPS_OPTION = 'allowed_membership_plan_ids';
 
 	/**
-	 * Replaces CSV mapping settings.
+	 * Import and Export Transformations logic to be applied to the data.
 	 */
 	const IMPORT_TRANSFORMATIONS_OPTION = 'import_transformations';
 	const EXPORT_TRANSFORMATIONS_OPTION = 'export_transformations';

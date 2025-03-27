@@ -27,4 +27,4 @@ if ( ! defined( 'NEWSPACK_PRINT_CIRC_INTEGRATION_PLUGIN_DIR' ) ) {
 
 require_once 'vendor/autoload.php';
 
-Newspack\PrintCirculationIntegration\Initializer::init();
+new Newspack\PrintCirculationIntegration\Initializer();

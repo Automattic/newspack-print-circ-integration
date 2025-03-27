@@ -8,6 +8,7 @@
 namespace Newspack\PrintCirculationIntegration;
 
 use WP_Error;
+use Newspack\PrintCirculationIntegration\Import_Process;
 
 /**
  * Importer class to handle the CSV import.
@@ -26,6 +27,24 @@ class Import {
 	 * @var string
 	 */
 	private $csv_handle = 'newspack-print-circ-import.csv';
+
+	/**
+	 * Import process.
+	 *
+	 * @var Newspack_Import_Process
+	 */
+	protected $import_process;
+
+	/**
+	 * Constructor.
+	 */
+	public function __construct() {
+		/**
+		 * Initialize the import process.
+		 * Background processes needs to be initialized early on in plugins_loaded.
+		 */
+		$this->import_process = new Import_Process();
+	}
 
 	/**
 	 * Set the CSV file handle.
@@ -86,23 +105,34 @@ class Import {
 	/**
 	 * Import users from the CSV file.
 	 *
-	 * @param int $limit  Number of users to import.
-	 * @param int $offset Offset.
+	 * @param int $batch_size  Number of users to import in a batch.
 	 *
 	 * @return bool|WP_Error True if the users were imported successfully, WP_Error otherwise.
 	 */
-	public function import_users( $limit = 100, $offset = 0 ) {
+	public function import_users( $batch_size = 100 ) {
+		$offset = 0;
 
-		$users = self::get_users_to_import( $limit, $offset );
+		// Loop through the CSV file and import users in batches.
+		while ( true ) {
+			$users = $this->get_users_to_import( $batch_size, $offset );
 
-		if ( is_wp_error( $users ) ) {
-			return $users;
+			if ( is_wp_error( $users ) ) {
+				return $users;
+			}
+
+			if ( empty( $users ) ) {
+				// No more users to import.
+				break;
+			}
+
+			// Push the users as a batch to the import process.
+			$this->import_process->push_to_queue( $users );
+
+			$offset += $batch_size;
 		}
 
-		foreach ( $users as $user ) {
-			$user = Import_Parser::parse_line( $user );
-			self::process_user( $user );
-		}
+		// Save and dispatch the import process.
+		$this->import_process->save()->dispatch();
 
 		return true;
 	}
@@ -255,6 +285,7 @@ class Import {
 
 			if ( ! is_wp_error( self::update_user( $user_id, $user ) ) ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf
 				// TODO: Log the user update.
+				$value = 'ok';
 			} else { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedElse
 				// TODO: Log the user update failure.
 			}

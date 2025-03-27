@@ -15,37 +15,62 @@ use Newspack\PrintCirculationIntegration\Import as Newspack_Print_Import;
 class Initializer {
 
 	/**
-	 * Runs the initialization.
+	 * Import module.
+	 *
+	 * @var Newspack_Print_Import
 	 */
-	public static function init() {
+	protected $import_module;
+
+	/**
+	 * Constructor.
+	 */
+	public function __construct() {
 		// Setup Hooks & Filters.
 		add_action( 'admin_notices', array( __CLASS__, 'show_admin_notice__error' ) );
-		add_action( 'init', array( __CLASS__, 'temp_process_csv' ) );
+
+		/**
+		 * TODO: To be scheduled as a cron job. Not on every page load.
+		 */
+		add_action( 'plugins_loaded', array( $this, 'initialize_import' ) );
+		add_action( 'init', array( $this, 'temp_process_csv' ) );
 
 		Settings::init();
 	}
 
 	/**
-	 * Temporary function to process the CSV file.
+	 * Initialize the import process.
+	 * Background processes needs to be initialized early on.
+	 * TODO: Do this once as a cron job.
 	 */
-	public static function temp_process_csv() {
+	public function initialize_import() {
+		$this->import_module = new Newspack_Print_Import();
+		$fetch_csv_status    = $this->import_module->fetch_csv_file();
+
+		if ( is_wp_error( $fetch_csv_status ) ) {
+			// TODO: Log error.
+			return;
+		}
+	}
+
+	/**
+	 * Temporary function to process the CSV file.
+	 * TODO: This should be done once as a cron job. Not on every page load.
+	 */
+	public function temp_process_csv() {
 		// phpcs:ignore WordPress.Security.NonceVerification
 		if ( isset( $_GET['process_csv'] ) && current_user_can( 'manage_options' ) ) {
-			$import_module = new Newspack_Print_Import();
-			$fetch_csv_result = $import_module->fetch_csv_file();
-			if ( is_wp_error( $fetch_csv_result ) ) {
-				// TODO: Log error.
-				return;
-			}
+			// Define the batch size.
+			$batch_size = defined( 'NEWSPACK_PRINT_CIRC_BATCH_SIZE' ) ? NEWSPACK_PRINT_CIRC_BATCH_SIZE : 20;
 
 			// Import users.
-			$import_result = $import_module->import_users();
+			$import_result = $this->import_module->import_users( $batch_size );
 			if ( is_wp_error( $import_result ) ) {
 				// TODO: Log error.
 				return;
 			}
 
-			$import_module->clean_up();
+			// Cleanup.
+			$this->import_module->clean_up();
 		}
 	}
 

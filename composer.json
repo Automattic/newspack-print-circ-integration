@@ -4,7 +4,8 @@
 	"description": "Plugin to integrate Newspack with print circulation systems",
 	"type": "wordpress-plugin",
 	"require": {
-		"composer/installers": "^2.3"
+		"composer/installers": "^2.3",
+		"deliciousbrains/wp-background-processing": "^1.4"
 	},
 	"require-dev": {
 		"automattic/vipwpcs": "^3.0",

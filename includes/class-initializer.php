@@ -22,6 +22,11 @@ class Initializer {
 	protected $import_module;
 
 	/**
+	 * Cron job hook.
+	 */
+	const CRON_JOB_HOOK = 'newspack_print_circ_sync';
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -29,10 +34,15 @@ class Initializer {
 		add_action( 'admin_notices', array( __CLASS__, 'show_admin_notice__error' ) );
 
 		/**
+		 * Schedule the cron job.
+		 */
+		add_action( 'update_option_' . Settings::SETTINGS_OPTION, array( __CLASS__, 'schedule_cron_jobs' ), 10, 2 );
+		add_action( self::CRON_JOB_HOOK, array( $this, 'users_import_sync' ) );
+
+		/**
 		 * TODO: To be scheduled as a cron job. Not on every page load.
 		 */
 		add_action( 'plugins_loaded', array( $this, 'initialize_import' ) );
-		add_action( 'init', array( $this, 'temp_process_csv' ) );
 
 		Settings::init();
 	}
@@ -47,33 +57,31 @@ class Initializer {
 	}
 
 	/**
-	 * Temporary function to process the CSV file.
-	 * TODO: This should be done once as a cron job. Not on every page load.
+	 * Sync - Import users from CSV file.
+	 * This fetches the CSV file and fires background process to import users.
 	 */
-	public function temp_process_csv() {
-		// phpcs:ignore WordPress.Security.NonceVerification
-		if ( isset( $_GET['process_csv'] ) && current_user_can( 'manage_options' ) ) {
-			// Fetch the CSV file.
-			$fetch_csv_status = $this->import_module->fetch_csv_file();
+	public function users_import_sync() {
+		// Fetch the CSV file.
+		$fetch_csv_status = $this->import_module->fetch_csv_file();
 
-			if ( is_wp_error( $fetch_csv_status ) ) {
-				// TODO: Log error.
-				return;
-			}
-
-			// Define the batch size.
-			$batch_size = defined( 'NEWSPACK_PRINT_CIRC_BATCH_SIZE' ) ? NEWSPACK_PRINT_CIRC_BATCH_SIZE : 20;
-
-			// Import users.
-			$import_result = $this->import_module->import_users( $batch_size );
-			if ( is_wp_error( $import_result ) ) {
-				// TODO: Log error.
-				return;
-			}
-
-			// Cleanup.
-			$this->import_module->clean_up();
+		if ( is_wp_error( $fetch_csv_status ) ) {
+			// TODO: Log error.
+			return;
 		}
+
+		// Define the batch size.
+		$batch_size = defined( 'NEWSPACK_PRINT_CIRC_BATCH_SIZE' ) ? NEWSPACK_PRINT_CIRC_BATCH_SIZE : 20;
+
+		// Import users.
+		$import_result = $this->import_module->import_users( $batch_size );
+
+		if ( is_wp_error( $import_result ) ) {
+			// TODO: Log error.
+			return;
+		}
+
+		// Cleanup.
+		$this->import_module->clean_up();
 	}
 
 	/**
@@ -144,5 +152,43 @@ class Initializer {
 			</div>
 			<?php
 		}
+	}
+
+	/**
+	 * Schedule cron jobs.
+	 *
+	 * @param array $old_value Old settings value.
+	 * @param array $value New settings value.
+	 */
+	public static function schedule_cron_jobs( $old_value, $value ) {
+		// Check if there is a change in the settings.
+		$old_cron_time = isset( $old_value[ Settings::SYNC_CRON_SCHEDULE ] ) ? $old_value[ Settings::SYNC_CRON_SCHEDULE ] : '';
+		$new_cron_time = isset( $value[ Settings::SYNC_CRON_SCHEDULE ] ) ? $value[ Settings::SYNC_CRON_SCHEDULE ] : '';
+
+		// Clear the cron job if there is no schedule.
+		if ( empty( $new_cron_time ) && wp_next_scheduled( self::CRON_JOB_HOOK ) ) {
+			wp_clear_scheduled_hook( self::CRON_JOB_HOOK );
+			return;
+		}
+
+		// Schedule the cron job if the time has changed.
+		if ( $old_cron_time !== $new_cron_time ) {
+			$cron_job_time = strtotime( $new_cron_time );
+
+			// Schedule the new cron job.
+			wp_clear_scheduled_hook( self::CRON_JOB_HOOK );
+			wp_schedule_event( $cron_job_time, 'daily', self::CRON_JOB_HOOK );
+		}
+	}
+
+	/**
+	 * Deactivate the plugin.
+	 */
+	public static function deactivate_plugin() {
+		// Clear the settings.
+		// delete_option( Settings::SETTINGS_OPTION );.
+
+		// Clear the cron job.
+		wp_clear_scheduled_hook( self::CRON_JOB_HOOK );
 	}
 }

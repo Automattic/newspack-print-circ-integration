@@ -56,6 +56,11 @@ class Settings {
 	const EXPORT_TRANSFORMATIONS_OPTION = 'export_transformations';
 
 	/**
+	 * Cron schedule for the Print Circulation System.
+	 */
+	const SYNC_CRON_SCHEDULE = 'newspack_print_circ_sync_cron_schedule';
+
+	/**
 	 * Runs the initialization.
 	 */
 	public static function init() {
@@ -129,6 +134,18 @@ class Settings {
 			[
 				'label_for'   => self::EXPORT_TRANSFORMATIONS_OPTION,
 				'description' => __( 'Transformations to apply to the exported data in JSON format.', 'newspack-print' ),
+			]
+		);
+
+		add_settings_field(
+			self::SYNC_CRON_SCHEDULE,
+			__( 'Users Sync Schedule', 'newspack-print' ),
+			[ __CLASS__, 'render_time_selector_field' ],
+			self::SETTINGS_OPTION,
+			'newspack_print_general_settings',
+			[
+				'label_for'   => self::SYNC_CRON_SCHEDULE,
+				'description' => __( 'Schedule for the Print Circulation System users sync.', 'newspack-print' ),
 			]
 		);
 
@@ -267,6 +284,20 @@ class Settings {
 	}
 
 	/**
+	 * Render a time selector field.
+	 *
+	 * @param array $args Field arguments.
+	 */
+	public static function render_time_selector_field( $args ) {
+		$options = get_option( self::SETTINGS_OPTION );
+		$value   = isset( $options[ $args['label_for'] ] ) ? $options[ $args['label_for'] ] : '';
+		?>
+		<input type="time" id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( self::SETTINGS_OPTION . '[' . $args['label_for'] . ']' ); ?>" value="<?php echo esc_attr( $value ); ?>" class="regular-text">
+		<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
+		<?php
+	}
+
+	/**
 	 * Sanitize settings.
 	 *
 	 * @param array $input Input settings.
@@ -312,6 +343,11 @@ class Settings {
 			if ( is_callable( $import_transformations ) ) {
 				$sanitized[ self::IMPORT_TRANSFORMATIONS_OPTION ] = sanitize_text_field( $input[ self::IMPORT_TRANSFORMATIONS_OPTION ] );
 			}
+		}
+
+		// Sanitize cron schedule.
+		if ( isset( $input[ self::SYNC_CRON_SCHEDULE ] ) ) {
+			$sanitized[ self::SYNC_CRON_SCHEDULE ] = sanitize_text_field( $input[ self::SYNC_CRON_SCHEDULE ] );
 		}
 
 		return $sanitized;

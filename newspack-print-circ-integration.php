@@ -28,3 +28,11 @@ if ( ! defined( 'NEWSPACK_PRINT_CIRC_INTEGRATION_PLUGIN_DIR' ) ) {
 require_once 'vendor/autoload.php';
 
 new Newspack\PrintCirculationIntegration\Initializer();
+
+/**
+ * Register Activation/Deactivation Hooks.
+ */
+register_deactivation_hook(
+	__FILE__,
+	[ 'Newspack\PrintCirculationIntegration\Initializer', 'deactivate_plugin' ]
+);

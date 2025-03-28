@@ -25,6 +25,7 @@ class Newspack_Fields {
 	const STATE_FIELD          = 'state';
 	const ZIP_FIELD            = 'zip';
 	const PHONE_FIELD          = 'phone';
+	const STATUS               = 'status';
 	const EXTRA_FIELD          = 'newspack_circ_extra';
 
 	/**
@@ -83,6 +84,11 @@ class Newspack_Fields {
 				'label'    => 'Phone',
 				'type'     => 'user_meta',
 				'db_field' => 'newspack_print_circ_billing_phone',
+			],
+			self::STATUS               => [
+				'label'    => 'Status',
+				'type'     => 'user_meta',
+				'db_field' => 'newspack_print_circ_status',
 			],
 			self::EXTRA_FIELD          => [
 				'label'    => 'Extra Data',

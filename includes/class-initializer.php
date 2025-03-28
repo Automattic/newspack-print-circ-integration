@@ -44,12 +44,6 @@ class Initializer {
 	 */
 	public function initialize_import() {
 		$this->import_module = new Newspack_Print_Import();
-		$fetch_csv_status    = $this->import_module->fetch_csv_file();
-
-		if ( is_wp_error( $fetch_csv_status ) ) {
-			// TODO: Log error.
-			return;
-		}
 	}
 
 	/**
@@ -59,6 +53,14 @@ class Initializer {
 	public function temp_process_csv() {
 		// phpcs:ignore WordPress.Security.NonceVerification
 		if ( isset( $_GET['process_csv'] ) && current_user_can( 'manage_options' ) ) {
+			// Fetch the CSV file.
+			$fetch_csv_status = $this->import_module->fetch_csv_file();
+
+			if ( is_wp_error( $fetch_csv_status ) ) {
+				// TODO: Log error.
+				return;
+			}
+
 			// Define the batch size.
 			$batch_size = defined( 'NEWSPACK_PRINT_CIRC_BATCH_SIZE' ) ? NEWSPACK_PRINT_CIRC_BATCH_SIZE : 20;
 

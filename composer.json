@@ -12,7 +12,8 @@
 		"wp-coding-standards/wpcs": "^3.0",
 		"dealerdirect/phpcodesniffer-composer-installer": "*",
 		"phpcompatibility/phpcompatibility-wp": "*",
-		"squizlabs/php_codesniffer": "3.*"
+		"squizlabs/php_codesniffer": "3.*",
+		"coenjacobs/mozart": "^0.7.1"
 	},
 	"license": "GPL-3.0",
 	"autoload": {
@@ -25,5 +26,26 @@
 			"composer/installers": true,
 			"dealerdirect/phpcodesniffer-composer-installer": true
 		}
+	},
+	"extra": {
+		"mozart": {
+			"dep_namespace": "Newspack\\PrintCirculationIntegration\\Dependencies\\",
+			"dep_directory": "/includes/Dependencies/",
+			"classmap_directory": "/includes/vendor/dependencies/",
+			"classmap_prefix": "Newspack_Print_Circ_Integration_",
+			"packages": [
+				"deliciousbrains/wp-background-processing"
+			]
+		}
+	},
+	"scripts": {
+		"post-install-cmd": [
+			"\"vendor/bin/mozart\" compose",
+			"composer dump-autoload"
+		],
+		"post-update-cmd": [
+			"\"vendor/bin/mozart\" compose",
+			"composer dump-autoload"
+		]
 	}
 }

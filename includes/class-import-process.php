@@ -7,7 +7,7 @@
 
 namespace Newspack\PrintCirculationIntegration;
 
-use WP_Background_Process;
+use Newspack_Print_Circ_Integration_WP_Background_Process as WP_Background_Process;
 
 /**
  * Import Process class.

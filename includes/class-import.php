@@ -127,12 +127,13 @@ class Import {
 
 			// Push the users as a batch to the import process.
 			$this->import_process->push_to_queue( $users );
+			$this->import_process->save();
 
 			$offset += $batch_size;
 		}
 
-		// Save and dispatch the import process.
-		$this->import_process->save()->dispatch();
+		// Dispatch the import process.
+		$this->import_process->dispatch();
 
 		return true;
 	}

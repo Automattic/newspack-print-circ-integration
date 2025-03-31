@@ -167,6 +167,11 @@ class Import {
 		}
 
 		while ( ( $row = fgetcsv( $csv_file ) ) !== false ) {
+			// If number of columns is not equal to header, skip the row.
+			if ( count( $row ) !== count( $header ) ) {
+				continue;
+			}
+
 			// Create an associative array.
 			$row = array_combine( $header, $row );
 

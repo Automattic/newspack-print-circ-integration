@@ -244,8 +244,9 @@ class Settings {
 	 */
 	public static function render_text_field( $args ) {
 		$options = get_option( self::SETTINGS_OPTION );
+		$value   = isset( $options[ $args['label_for'] ] ) ? $options[ $args['label_for'] ] : '';
 		?>
-		<input type="text" id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( self::SETTINGS_OPTION . '[' . $args['label_for'] . ']' ); ?>" value="<?php echo esc_attr( $options[ $args['label_for'] ] ); ?>" class="regular-text">
+		<input type="text" id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( self::SETTINGS_OPTION . '[' . $args['label_for'] . ']' ); ?>" value="<?php echo esc_attr( $value ); ?>" class="regular-text">
 		<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
 		<?php
 	}
@@ -256,9 +257,10 @@ class Settings {
 	 * @param array $args Field arguments.
 	 */
 	public static function render_textarea_field( $args ) {
-		$options = get_option( self::SETTINGS_OPTION );
+		$options = get_option( self::SETTINGS_OPTION, [] );
+		$value   = isset( $options[ $args['label_for'] ] ) ? $options[ $args['label_for'] ] : '';
 		?>
-		<textarea id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( self::SETTINGS_OPTION . '[' . $args['label_for'] . ']' ); ?>" class="large-text" rows="5"><?php echo esc_textarea( $options[ $args['label_for'] ] ); ?></textarea>
+		<textarea id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( self::SETTINGS_OPTION . '[' . $args['label_for'] . ']' ); ?>" class="large-text" rows="5"><?php echo esc_textarea( $value ); ?></textarea>
 		<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
 		<?php
 	}

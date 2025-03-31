@@ -65,9 +65,12 @@ class Initializer {
 		$fetch_csv_status = $this->import_module->fetch_csv_file();
 
 		if ( is_wp_error( $fetch_csv_status ) ) {
-			// TODO: Log error.
+			// Log error.
+			Logger::add_log( 'Error fetching CSV file: ' . $fetch_csv_status->get_error_message() );
 			return;
 		}
+
+		Logger::add_log( 'CSV file fetched successfully.' );
 
 		// Define the batch size.
 		$batch_size = defined( 'NEWSPACK_PRINT_CIRC_BATCH_SIZE' ) ? NEWSPACK_PRINT_CIRC_BATCH_SIZE : 20;
@@ -76,7 +79,8 @@ class Initializer {
 		$import_result = $this->import_module->import_users( $batch_size );
 
 		if ( is_wp_error( $import_result ) ) {
-			// TODO: Log error.
+			// Log error.
+			Logger::add_log( 'Error importing users: ' . $import_result->get_error_message() );
 			return;
 		}
 

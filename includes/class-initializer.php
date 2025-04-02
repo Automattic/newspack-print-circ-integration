@@ -33,7 +33,7 @@ class Initializer {
 	public function __construct() {
 		// Setup Hooks & Filters.
 		add_action( 'admin_notices', array( __CLASS__, 'show_admin_notice__error' ) );
-		add_action( 'init', array( __CLASS__, 'register_cli_commands' ) );
+		add_action( 'cli_init', array( __CLASS__, 'register_cli_commands' ) );
 
 		/**
 		 * Schedule the cron job.

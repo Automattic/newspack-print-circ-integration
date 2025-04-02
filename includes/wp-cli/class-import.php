@@ -9,6 +9,8 @@ namespace Newspack\PrintCirculationIntegration\CLI;
 
 use WP_CLI;
 use Newspack\PrintCirculationIntegration\Import as Import_Module;
+use Newspack\PrintCirculationIntegration\Import_Parser;
+use Newspack\PrintCirculationIntegration\Newspack_Fields;
 use Newspack\PrintCirculationIntegration\Logger;
 
 class Import {
@@ -44,37 +46,42 @@ class Import {
 			return;
 		}
 
-		WP_CLI::log( 'CSV file fetched successfully.' );
+		WP_CLI::line( WP_CLI::colorize( '%CCSV file fetched successfully.%n' ) );
 
-		// Run the import process.
-		$import_result = $import_module->import_users( $batch_size );
+		WP_CLI::log( 'Starting Processing the users...' );
 
-		if ( is_wp_error( $import_result ) ) {
-			WP_CLI::error( 'Error importing users: ' . $import_result->get_error_message() );
-			return;
+		// Initialize the import process.
+		$offset = 0;
+		$count  = 0;
+
+		// Loop through the CSV file and import users in batches.
+		while ( true ) {
+			$users = $import_module->get_users_to_import( $batch_size, $offset );
+
+			if ( is_wp_error( $users ) ) {
+				return $users;
+			}
+
+			if ( empty( $users ) ) {
+				// No more users to import.
+				break;
+			}
+
+			// Process the users.
+			foreach ( $users as $user ) {
+				$parsed_user = Import_Parser::parse_line( $user );
+				Import_Module::process_user( $parsed_user );
+				WP_CLI::log( sprintf( 'Processed user: %s', $parsed_user[ Newspack_Fields::CIRCULATION_ID_FIELD ] ) );
+			}
+
+			WP_CLI::log( sprintf( 'Processed Batch %d of %d users.', $count + 1, count( $users ) ) );
+
+			$offset += $batch_size;
+			$count++;
 		}
 
-		WP_CLI::success( 'Import process completed successfully.' );
+		WP_CLI::success( sprintf( 'Processed a total of %d batches of users.', $count ) );
 
-		// Display logs.
-		self::display_logs();
-	}
-
-	/**
-	 * Display logs in the CLI terminal.
-	 */
-	private static function display_logs() {
-		WP_CLI::log( 'Displaying the latest logs:' );
-
-		$logs = Logger::get_logs();
-
-		if ( empty( $logs ) ) {
-			WP_CLI::log( 'No logs available.' );
-			return;
-		}
-
-		foreach ( $logs as $log ) {
-			WP_CLI::log( sprintf( '[%s] %s', $log['time'], $log['message'] ) );
-		}
+		Logger::add_log( sprintf( 'Processed a total of %d batches of users via CLI.', $count ) );
 	}
 }

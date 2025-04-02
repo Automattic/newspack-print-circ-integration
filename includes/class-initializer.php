@@ -7,6 +7,7 @@
 
 namespace Newspack\PrintCirculationIntegration;
 
+use WP_CLI;
 use Newspack\PrintCirculationIntegration\Import as Newspack_Print_Import;
 
 /**
@@ -32,6 +33,7 @@ class Initializer {
 	public function __construct() {
 		// Setup Hooks & Filters.
 		add_action( 'admin_notices', array( __CLASS__, 'show_admin_notice__error' ) );
+		add_action( 'init', array( __CLASS__, 'register_cli_commands' ) );
 
 		/**
 		 * Schedule the cron job.
@@ -187,6 +189,20 @@ class Initializer {
 			wp_clear_scheduled_hook( self::CRON_JOB_HOOK );
 			wp_schedule_event( $cron_job_time, 'daily', self::CRON_JOB_HOOK );
 		}
+	}
+
+	/**
+	 * Register WP-CLI commands.
+	 */
+	public static function register_cli_commands() {
+		if ( ! class_exists( 'WP_CLI' ) ) {
+			return;
+		}
+
+		// Register the CLI command.
+		require_once __DIR__ . '/wp-cli/class-import.php';
+
+		WP_CLI::add_command( 'newspack-print import-users', [ 'Newspack\PrintCirculationIntegration\CLI\Import', 'import_users' ] );
 	}
 
 	/**

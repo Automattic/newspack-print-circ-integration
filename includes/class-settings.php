@@ -502,10 +502,12 @@ class Settings {
 					<?php endif; ?>
 				</tbody>
 			</table>
-			<form method="post" action="">
-				<?php wp_nonce_field( 'clear_logs_action', 'clear_logs_nonce' ); ?>
-				<input type="submit" name="clear_logs" class="button button-secondary" value="<?php esc_attr_e( 'Clear Logs', 'newspack-print' ); ?>">
-			</form>
+			<div class="tablenav bottom">
+				<form method="post" action="">
+					<?php wp_nonce_field( 'clear_logs_action', 'clear_logs_nonce' ); ?>
+					<input type="submit" name="clear_logs" class="button button-secondary" value="<?php esc_attr_e( 'Clear Logs', 'newspack-print' ); ?>">
+				</form>
+			</div>
 		</div>
 		<?php
 

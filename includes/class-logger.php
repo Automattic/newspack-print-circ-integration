@@ -37,11 +37,11 @@ class Logger {
 
 		$logs = get_option( self::LOG_OPTION, [] );
 
-		// Add a timestamp to the log message.
-		$logs[] = [
+		// Add a new log entry to the beginning of the logs array.
+		array_unshift( $logs, [
 			'time'    => current_time( 'mysql' ),
 			'message' => $message,
-		];
+		] );
 
 		// Keep only the last 20 logs.
 		if ( count( $logs ) > 20 ) {

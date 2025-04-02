@@ -71,6 +71,7 @@ class Initializer {
 		}
 
 		Logger::add_log( 'CSV file fetched successfully.' );
+		Logger::add_log( 'Starting user import...' );
 
 		// Define the batch size.
 		$batch_size = defined( 'NEWSPACK_PRINT_CIRC_BATCH_SIZE' ) ? NEWSPACK_PRINT_CIRC_BATCH_SIZE : 20;

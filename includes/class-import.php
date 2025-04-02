@@ -110,7 +110,11 @@ class Import {
 	 * @return bool|WP_Error True if the users were imported successfully, WP_Error otherwise.
 	 */
 	public function import_users( $batch_size = 100 ) {
+		/**
+		 * Initisize flags.
+		 */
 		$offset = 0;
+		$count  = 0;
 
 		// Loop through the CSV file and import users in batches.
 		while ( true ) {
@@ -130,7 +134,10 @@ class Import {
 			$this->import_process->save();
 
 			$offset += $batch_size;
+			$count++;
 		}
+
+		$this->import_process->set_total_batch( $count );
 
 		// Dispatch the import process.
 		$this->import_process->dispatch();

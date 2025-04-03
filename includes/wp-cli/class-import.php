@@ -12,6 +12,7 @@ use Newspack\PrintCirculationIntegration\Import as Import_Module;
 use Newspack\PrintCirculationIntegration\Import_Parser;
 use Newspack\PrintCirculationIntegration\Newspack_Fields;
 use Newspack\PrintCirculationIntegration\Logger;
+use WP;
 
 class Import {
 
@@ -64,10 +65,11 @@ class Import {
 		 * TODO: Remove this in the future.
 		 */
 		if ( $is_dry_run ) {
-			// Only process the first 10 users.
-			$batch_size = 10;
+			// Only process the first 5 users.
+			$batch_size = 5;
 
-			WP_CLI::line( WP_CLI::colorize( '%YRunning in Dry run mode. No changes will be made to the database.%n' ) );
+			WP_CLI::line( WP_CLI::colorize( '%Y---Running Dry run---%n' ) );
+			WP_CLI::line( WP_CLI::colorize( '%YOverriding batch size to 5 for dry run.%n' ) );
 
 			global $wpdb;
 
@@ -108,7 +110,7 @@ class Import {
 			$count++;
 
 			// If dry run is enabled, break after the first batch.
-			if ( $is_dry_run ) {
+			if ( $is_dry_run && $count > 1 ) {
 				WP_CLI::line( WP_CLI::colorize( '%YDry run completed. No changes made to the database.%n' ) );
 				break;
 			}

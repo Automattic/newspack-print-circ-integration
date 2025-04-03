@@ -64,6 +64,9 @@ class Import {
 		 * TODO: Remove this in the future.
 		 */
 		if ( $is_dry_run ) {
+			// Only process the first 10 users.
+			$batch_size = 10;
+
 			WP_CLI::line( WP_CLI::colorize( '%YRunning in Dry run mode. No changes will be made to the database.%n' ) );
 
 			global $wpdb;
@@ -98,11 +101,17 @@ class Import {
 				WP_CLI::log( sprintf( 'Processed user: %s', $parsed_user[ Newspack_Fields::CIRCULATION_ID_FIELD ] ) );
 			}
 
-			$batch_process_message = sprintf( 'Processed Batch %d of %d users.', $count + 1, count( $users ) );
+			$batch_process_message = sprintf( 'Processed Batch %d containing %d users.', $count + 1, count( $users ) );
 			WP_CLI::line( WP_CLI::colorize( '%g' . $batch_process_message . '%n' ) );
 
 			$offset += $batch_size;
 			$count++;
+
+			// If dry run is enabled, break after the first batch.
+			if ( $is_dry_run ) {
+				WP_CLI::line( WP_CLI::colorize( '%YDry run completed. No changes made to the database.%n' ) );
+				break;
+			}
 		}
 
 		WP_CLI::success( sprintf( 'Processed a total of %d batches of users.', $count ) );

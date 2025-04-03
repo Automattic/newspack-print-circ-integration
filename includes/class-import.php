@@ -146,6 +146,58 @@ class Import {
 	}
 
 	/**
+	 * Test import users from the CSV file.
+	 *
+	 * @return bool|WP_Error True if the users were imported successfully, WP_Error otherwise.
+	 */
+	public function test_import_users() {
+		/**
+		 * Test Configuration.
+		 */
+		$batch_size      = 5;
+		$test_iterations = 2;
+
+		/**
+		 * Initialize flags.
+		 */
+		$offset          = 0;
+		$batch_count     = 0;
+
+		// Loop through the CSV file and import users in batches.
+		while ( $batch_count < $test_iterations ) {
+			$users = $this->get_users_to_import( $batch_size, $offset );
+
+			if ( is_wp_error( $users ) ) {
+				return $users;
+			}
+
+			if ( empty( $users ) ) {
+				// No more users to import.
+				break;
+			}
+
+			/**
+			 * Don't save the users.
+			 */
+			$users = [];
+
+			// Push the users as a batch to the import process.
+			$this->import_process->push_to_queue( $users );
+			$this->import_process->save();
+
+			$offset += $batch_size;
+			$batch_count++;
+		}
+
+		$this->import_process->set_total_batch( $batch_count );
+
+		// Dispatch the import process.
+		$this->import_process->dispatch();
+
+		return true;
+	}
+
+	/**
 	 * Get users to import from the CSV file.
 	 *
 	 * @param int $limit  Number of users to import.

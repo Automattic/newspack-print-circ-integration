@@ -76,8 +76,11 @@ class Initializer {
 		// Define the batch size.
 		$batch_size = defined( 'NEWSPACK_PRINT_CIRC_BATCH_SIZE' ) ? NEWSPACK_PRINT_CIRC_BATCH_SIZE : 20;
 
+		/**
+		 * TODO: This will be replaced with import_users( $batch_size ) function once the import functionality is validated.
+		 */
 		// Import users.
-		$import_result = $this->import_module->import_users( $batch_size );
+		$import_result = $this->import_module->test_import_users();
 
 		if ( is_wp_error( $import_result ) ) {
 			// Log error.

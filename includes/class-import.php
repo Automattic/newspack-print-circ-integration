@@ -118,16 +118,19 @@ class Import {
 
 		// Loop through the CSV file and import users in batches.
 		while ( true ) {
-			$users = $this->get_users_to_import( $batch_size, $offset );
+			$processed_users = $this->get_users_to_import( $batch_size, $offset );
 
-			if ( is_wp_error( $users ) ) {
-				return $users;
+			if ( is_wp_error( $processed_users ) ) {
+				return $processed_users;
 			}
 
-			if ( empty( $users ) ) {
+			if ( ! isset( $processed_users['valid_users'] ) || empty( $processed_users['valid_users'] )) {
 				// No more users to import.
 				break;
 			}
+
+			// Only process valid users.
+			$users = $processed_users['valid_users'];
 
 			// Push the users as a batch to the import process.
 			$this->import_process->push_to_queue( $users );
@@ -207,8 +210,14 @@ class Import {
 	 */
 	public function get_users_to_import( $limit = 100, $offset = 0 ) {
 
-		$users = [];
-		$csv_file = $this->csv_file;
+		/**
+		 * Initialize variables.
+		 */
+		$valid_users   = [];
+		$skipped_users = [];
+
+		// Get & check CSV.
+		$csv_file      = $this->csv_file;
 		if ( ! $csv_file ) {
 			return new WP_Error( 'error', 'No CSV file to import.' );
 		}
@@ -228,19 +237,25 @@ class Import {
 		while ( ( $row = fgetcsv( $csv_file ) ) !== false ) {
 			// If number of columns is not equal to header, skip the row.
 			if ( count( $row ) !== count( $header ) ) {
+				$skipped_users[] = $row;
 				continue;
 			}
 
 			// Create an associative array.
 			$row = array_combine( $header, $row );
 
-			$users[] = $row;
-			if ( count( $users ) >= $limit ) {
+			$valid_users[] = $row;
+
+			// If the limit is reached, break the loop.
+			if ( count( $valid_users ) >= $limit ) {
 				break;
 			}
 		}
 
-		return $users;
+		return [
+			'valid_users'   => $valid_users,
+			'skipped_users' => $skipped_users,
+		];
 	}
 
 	/**

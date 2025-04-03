@@ -23,6 +23,9 @@ class Import {
 	 * [--batch-size=<batch-size>]
 	 * : The size of each batch. Default is 20.
 	 *
+	 * [--dry-run]
+	 * : If set, the import will be a dry run and no changes will be made to the database.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp newspack-print import-users --batch-size=50
@@ -32,6 +35,7 @@ class Import {
 	 */
 	public static function import_users( $args, $assoc_args ) {
 		$batch_size = isset( $assoc_args['batch-size'] ) ? intval( $assoc_args['batch-size'] ) : 20;
+		$is_dry_run = isset( $assoc_args['dry-run'] );
 
 		WP_CLI::log( 'Starting the import process...' );
 
@@ -54,6 +58,18 @@ class Import {
 		$offset        = 0;
 		$count         = 0;
 		$skipped_users = [];
+
+
+		/**
+		 * TODO: Remove this in the future.
+		 */
+		if ( $is_dry_run ) {
+			WP_CLI::line( WP_CLI::colorize( '%YRunning in Dry run mode. No changes will be made to the database.%n' ) );
+
+			global $wpdb;
+
+			$wpdb->query( 'SET autocommit = 0' );
+		}
 
 		// Loop through the CSV file and import users in batches.
 		while ( true ) {
@@ -82,7 +98,8 @@ class Import {
 				WP_CLI::log( sprintf( 'Processed user: %s', $parsed_user[ Newspack_Fields::CIRCULATION_ID_FIELD ] ) );
 			}
 
-			WP_CLI::log( sprintf( 'Processed Batch %d of %d users.', $count + 1, count( $users ) ) );
+			$batch_process_message = sprintf( 'Processed Batch %d of %d users.', $count + 1, count( $users ) );
+			WP_CLI::line( WP_CLI::colorize( '%g' . $batch_process_message . '%n' ) );
 
 			$offset += $batch_size;
 			$count++;

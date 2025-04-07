@@ -29,6 +29,13 @@ class Import {
 	private $csv_handle = 'newspack-print-circ-import.csv';
 
 	/**
+	 * CSV file path.
+	 *
+	 * @var string
+	 */
+	private $csv_path = '';
+
+	/**
 	 * Import process.
 	 *
 	 * @var Newspack_Import_Process
@@ -44,6 +51,15 @@ class Import {
 		 * Background processes needs to be initialized early on in plugins_loaded.
 		 */
 		$this->import_process = new Import_Process();
+	}
+
+	/**
+	 * Set the CSV file path.
+	 *
+	 * @param string $csv_path CSV file path.
+	 */
+	public function set_csv_path( $csv_path ) {
+		$this->csv_path = $csv_path;
 	}
 
 	/**
@@ -68,7 +84,7 @@ class Import {
 
 	/**
 	 * Fetch the CSV file from the URL and set the CSV file handle.
-	 * 
+	 *
 	 * @return bool|WP_Error True if the CSV file was fetched successfully, WP_Error otherwise.
 	 */
 	public function fetch_csv_file() {
@@ -118,32 +134,45 @@ class Import {
 
 		// Loop through the CSV file and import users in batches.
 		while ( true ) {
+
 			$processed_users = $this->get_users_to_import( $batch_size, $offset );
 
 			if ( is_wp_error( $processed_users ) ) {
 				return $processed_users;
 			}
 
-			if ( ! isset( $processed_users['valid_users'] ) || empty( $processed_users['valid_users'] )) {
+			if ( ! isset( $processed_users['valid_users'] ) || empty( $processed_users['valid_users'] ) ) {
 				// No more users to import.
 				break;
 			}
 
-			// Only process valid users.
-			$users = $processed_users['valid_users'];
+			if ( false ) {
+				// NOTE: adding things to the event queue should be done elsewhere.
+				// When a CRON runs and triggers the import process, it doesn't need to read the CSV and add the users to the queue.
+				// It should just start a new process. The async job itself, when initialized, should read the CSV to set the totals, but only store the current offset.
+				// Them each individual task() should read the CSV and process the users.
+				// Also note that we are not tied to the WP_Background_Process class necessarily. If it's easier, we can implement something ourselves.
+				// Only process valid users.
+				$users = $processed_users['valid_users'];
 
-			// Push the users as a batch to the import process.
-			$this->import_process->push_to_queue( $users );
-			$this->import_process->save();
+				// Push the users as a batch to the import process.
+				$this->import_process->push_to_queue( $users );
+				$this->import_process->save();
+			} else {
+				$this->import_users_batch( $processed_users['valid_users'] );
+			}
+
 
 			$offset += $batch_size;
 			$count++;
 		}
 
-		$this->import_process->set_total_batch( $count );
+		if ( false ) {
+			$this->import_process->set_total_batch( $count );
 
-		// Dispatch the import process.
-		$this->import_process->dispatch();
+			// Dispatch the import process.
+			$this->import_process->dispatch();
+		}
 
 		return true;
 	}
@@ -154,51 +183,68 @@ class Import {
 	 * @return bool|WP_Error True if the users were imported successfully, WP_Error otherwise.
 	 */
 	public function test_import_users() {
-		/**
-		 * Test Configuration.
-		 */
-		$batch_size      = 5;
-		$test_iterations = 2;
+		$users = $this->get_users_to_import( 10, 0 );
 
-		/**
-		 * Initialize flags.
-		 */
-		$offset          = 0;
-		$batch_count     = 0;
-
-		// Loop through the CSV file and import users in batches.
-		while ( $batch_count < $test_iterations ) {
-			$users = $this->get_users_to_import( $batch_size, $offset );
-
-			if ( is_wp_error( $users ) ) {
-				return $users;
-			}
-
-			if ( empty( $users ) ) {
-				// No more users to import.
-				break;
-			}
-
-			/**
-			 * Don't save the users.
-			 */
-			$users = [];
-
-			// Push the users as a batch to the import process.
-			$this->import_process->push_to_queue( $users );
-			$this->import_process->save();
-
-			$offset += $batch_size;
-			$batch_count++;
+		if ( is_wp_error( $users ) ) {
+			return $users;
 		}
 
-		$this->import_process->set_total_batch( $batch_count );
+		if ( empty( $users ) ) {
+			return [];
+		}
 
-		// Dispatch the import process.
-		$this->import_process->dispatch();
+		return $this->test_import_users_batch( $users['valid_users'] );
+	}
 
+	/**
+	 * Import users from the CSV file.
+	 *
+	 * @param array $users Users to import (raw CSV lines).
+	 *
+	 * @return bool|WP_Error True if the users were imported successfully, WP_Error otherwise.
+	 */
+	public function import_users_batch( $users ) {
+		if ( empty( $users ) ) {
+			return new WP_Error( 'error', 'No users to import.' );
+		}
+
+		foreach ( $users as $user ) {
+
+			Logger::add_log( 'Processing user: ' . print_r( $user, true ) );
+			$parsed_user = Import_Parser::parse_line( $user );
+			Logger::add_log( 'Parsed user: ' . print_r( $parsed_user, true ) );
+			self::process_user( $parsed_user );
+			Logger::add_log( '--- finished processing user ---' );
+		}
 		return true;
 	}
+
+	/**
+	 * Test import users from the CSV file.
+	 *
+	 * @param array $users Users to import (raw CSV lines).
+	 *
+	 * @return array|WP_Error Parsed users or WP_Error if there was an error.
+	 */
+	public function test_import_users_batch( $users ) {
+		if ( empty( $users ) ) {
+			return new WP_Error( 'error', 'No users to import.' );
+		}
+
+		$parsed_users = [];
+
+		foreach ( $users as $user ) {
+
+			Logger::add_log( 'Test Processing user: ' . print_r( $user, true ) );
+			$parsed_user = Import_Parser::parse_line( $user );
+			$parsed_users[] = $parsed_user;
+			Logger::add_log( 'Parsed user: ' . print_r( $parsed_user, true ) );
+			Logger::add_log( '--- finished test processing user ---' );
+		}
+
+		return $parsed_users;
+	}
+
 
 	/**
 	 * Get users to import from the CSV file.
@@ -210,6 +256,8 @@ class Import {
 	 */
 	public function get_users_to_import( $limit = 100, $offset = 0 ) {
 
+		Logger::add_log( 'Reading batch of users from csv. Offset: ' . $offset );
+
 		/**
 		 * Initialize variables.
 		 */
@@ -217,9 +265,15 @@ class Import {
 		$skipped_users = [];
 
 		// Get & check CSV.
-		$csv_file      = $this->csv_file;
-		if ( ! $csv_file ) {
+		if ( ! is_readable( $this->csv_path ) ) {
+			Logger::add_log( 'No CSV file to import.' );
 			return new WP_Error( 'error', 'No CSV file to import.' );
+		}
+
+		$csv_file = fopen( $this->csv_path, 'r' ); // phpcs:ignore
+		if ( ! $csv_file ) {
+			Logger::add_log( 'Failed to open CSV file.' );
+			return new WP_Error( 'error', 'Failed to open CSV file.' );
 		}
 
 		// Reset the file pointer.
@@ -237,6 +291,7 @@ class Import {
 		while ( ( $row = fgetcsv( $csv_file ) ) !== false ) {
 			// If number of columns is not equal to header, skip the row.
 			if ( count( $row ) !== count( $header ) ) {
+				Logger::add_log( 'Invalid row: ' . implode( ';', $row ) );
 				$skipped_users[] = $row;
 				continue;
 			}
@@ -252,6 +307,12 @@ class Import {
 			}
 		}
 
+		// Close the CSV file.
+		fclose( $csv_file );
+		Logger::add_log( 'Finished reading batch of users from csv. Offset: ' . $offset );
+		Logger::add_log( 'Valid users: ' . count( $valid_users ) );
+		Logger::add_log( 'Skipped users: ' . count( $skipped_users ) );
+
 		return [
 			'valid_users'   => $valid_users,
 			'skipped_users' => $skipped_users,
@@ -264,12 +325,15 @@ class Import {
 	 * @param array $user User data.
 	 */
 	public static function get_or_create_user( $user ) {
+		Logger::add_log( 'Getting or creating user' );
 		/**
 		 * Check if the user already exists by email.
 		 */
 		if ( ! empty( $user[ Newspack_Fields::EMAIL_FIELD ] ) ) {
+			Logger::add_log( 'Checking user by email: ' . $user[ Newspack_Fields::EMAIL_FIELD ] );
 			$existing_user = self::get_user_by_email( $user[ Newspack_Fields::EMAIL_FIELD ] );
 			if ( $existing_user ) {
+				Logger::add_log( 'User with matching email found. ID: ' . $existing_user->ID );
 				return $existing_user->ID;
 			}
 		}
@@ -278,14 +342,17 @@ class Import {
 		 * Check if the user already exists by circulation_id.
 		 */
 		$existing_user = self::get_user_by_circulation_id( $user[ Newspack_Fields::CIRCULATION_ID_FIELD ] );
+		Logger::add_log( 'Checking user by circulation_id: ' . $user[ Newspack_Fields::CIRCULATION_ID_FIELD ] );
 
 		if ( $existing_user ) {
+			Logger::add_log( 'User with matching circulation_id found. ID: ' . $existing_user->ID );
 			return $existing_user->ID;
 		} else {
 			/**
 			 * User does not exist, create a new user.
 			 */
 			$user_id = self::create_user( $user );
+			Logger::add_log( 'User created. ID: ' . $user_id );
 		}
 
 		return $user_id;

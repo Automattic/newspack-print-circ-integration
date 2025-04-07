@@ -7,6 +7,8 @@
 
 namespace Newspack\PrintCirculationIntegration;
 
+use WP_CLI;
+
 /**
  * Logger class to handle logging.
  */
@@ -18,11 +20,22 @@ class Logger {
 	const LOG_OPTION = 'newspack_print_circ_logs';
 
 	/**
-	 * Initialize the logger.
+	 * The current job ID.
+	 *
+	 * This will be used to identify the current job in the logs.
+	 * The log will write to a file named after the job ID, if one is set.
+	 *
+	 * @var string
 	 */
-	public static function is_enabled() {
-		// Check if logging is enabled in the settings.
-		return (bool) Settings::get_setting( Settings::LOGGING_ENABLED_OPTION );
+	private static $job_id;
+
+	/**
+	 * Set the job ID.
+	 *
+	 * @param string $job_id The job ID.
+	 */
+	public static function set_job_id( $job_id ) {
+		self::$job_id = $job_id;
 	}
 
 	/**
@@ -31,39 +44,21 @@ class Logger {
 	 * @param string $message The log message.
 	 */
 	public static function add_log( $message ) {
-		if ( ! self::is_enabled() ) {
-			return;
+		if ( ! empty( self::$job_id ) ) {
+			$log_filename = self::$job_id . '.log';
+			$log_path = WP_CONTENT_DIR . '/uploads/' . $log_filename;
+
+			// Create the log file if it doesn't exist.
+			if ( ! file_exists( $log_path ) ) {
+				touch( $log_path );
+			}
+			// Append the log message to the file.
+			$log_message = $message . PHP_EOL;
 		}
 
-		$logs = get_option( self::LOG_OPTION, [] );
-
-		// Add a new log entry to the beginning of the logs array.
-		array_unshift( $logs, [
-			'time'    => current_time( 'mysql' ),
-			'message' => $message,
-		] );
-
-		// Keep only the last 20 logs.
-		if ( count( $logs ) > 20 ) {
-			$logs = array_slice( $logs, -20 );
+		// output the log message to the console if WP-CLI is available.
+		if ( class_exists( 'WP_CLI' ) ) {
+			WP_CLI::log( $message );
 		}
-
-		update_option( self::LOG_OPTION, $logs );
-	}
-
-	/**
-	 * Get the logs.
-	 *
-	 * @return array The logs.
-	 */
-	public static function get_logs() {
-		return get_option( self::LOG_OPTION, [] );
-	}
-
-	/**
-	 * Clear all logs.
-	 */
-	public static function clear_logs() {
-		delete_option( self::LOG_OPTION );
 	}
 }

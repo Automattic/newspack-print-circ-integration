@@ -66,6 +66,57 @@ class Settings {
 	const LOGGING_ENABLED_OPTION = 'logging_enabled';
 
 	/**
+	 * The mapping of Newspack fields to Print Circulation System fields.
+	 *
+	 * Newspack fields on the left, Print Circulation System fields on the right.
+	 *
+	 * @var array
+	 */
+	public static $default_mapping = [
+		'circ_id'      => 'Account',
+		'status'       => 'Status',
+		'first_name'   => 'First Name',
+		'last_name'    => 'Last Name',
+		'display_name' => 'display_name',
+		'email'        => 'Email',
+		'phone'        => 'Phone- Last 4',
+		'address'      => 'address',
+		'city'         => 'City',
+		'state'        => 'State',
+		'zip'          => 'Zip',
+	];
+
+	/**
+	 * Default import transformations.
+	 *
+	 * @var string
+	 */
+	public static $default_import_transformations = 'function( $line ) {
+                // Join the address street name and st number into a single address field.
+                $line["address"] = $line["Street Name"] . " " . $line["St Num"];
+                unset( $line["Street Name"] );
+				unset( $line["St Num"] );
+
+                // Set display name;
+                $line["display_name"] = $line["First Name"] . " " . $line["Last Name"];
+
+                return $line;
+            }';
+
+	/**
+	 * Default export transformations.
+	 *
+	 * @var string
+	 */
+	public static $default_export_transformations = 'function( $line ) {
+                // Break address into street name and st number using a regex to extract the numeric part.
+                $line["Street Name"] = preg_replace("/(\d+)$/", ", $line["address"]);
+                $line["St Num"] = preg_replace("/^[^0-9]*(\d+)$/", "$1", $line["address"]);
+
+                return $line;
+            }';
+
+	/**
 	 * Runs the initialization.
 	 */
 	public static function init() {
@@ -107,41 +158,41 @@ class Settings {
 			]
 		);
 
-		add_settings_field(
-			self::CSV_MAPPING_OPTION,
-			__( 'CSV Mapping', 'newspack-print' ),
-			[ __CLASS__, 'render_textarea_field' ],
-			self::SETTINGS_OPTION,
-			'newspack_print_general_settings',
-			[
-				'label_for'   => self::CSV_MAPPING_OPTION,
-				'description' => __( 'Field mapping in JSON format. Make sure to include "circulation_id" as the unique identifier for the mapping', 'newspack-print' ),
-			]
-		);
+		// add_settings_field(
+		// self::CSV_MAPPING_OPTION,
+		// __( 'CSV Mapping', 'newspack-print' ),
+		// [ __CLASS__, 'render_textarea_field' ],
+		// self::SETTINGS_OPTION,
+		// 'newspack_print_general_settings',
+		// [
+		// 'label_for'   => self::CSV_MAPPING_OPTION,
+		// 'description' => __( 'Field mapping in JSON format. Make sure to include "circulation_id" as the unique identifier for the mapping', 'newspack-print' ),
+		// ]
+		// );
 
-		add_settings_field(
-			self::IMPORT_TRANSFORMATIONS_OPTION,
-			__( 'Import Transformations', 'newspack-print' ),
-			[ __CLASS__, 'render_textarea_field' ],
-			self::SETTINGS_OPTION,
-			'newspack_print_general_settings',
-			[
-				'label_for'   => self::IMPORT_TRANSFORMATIONS_OPTION,
-				'description' => __( 'Transformations to apply to the imported data in JSON format.', 'newspack-print' ),
-			]
-		);
+		// add_settings_field(
+		// self::IMPORT_TRANSFORMATIONS_OPTION,
+		// __( 'Import Transformations', 'newspack-print' ),
+		// [ __CLASS__, 'render_textarea_field' ],
+		// self::SETTINGS_OPTION,
+		// 'newspack_print_general_settings',
+		// [
+		// 'label_for'   => self::IMPORT_TRANSFORMATIONS_OPTION,
+		// 'description' => __( 'Transformations to apply to the imported data in JSON format.', 'newspack-print' ),
+		// ]
+		// );
 
-		add_settings_field(
-			self::EXPORT_TRANSFORMATIONS_OPTION,
-			__( 'Export Transformations', 'newspack-print' ),
-			[ __CLASS__, 'render_textarea_field' ],
-			self::SETTINGS_OPTION,
-			'newspack_print_general_settings',
-			[
-				'label_for'   => self::EXPORT_TRANSFORMATIONS_OPTION,
-				'description' => __( 'Transformations to apply to the exported data in JSON format.', 'newspack-print' ),
-			]
-		);
+		// add_settings_field(
+		// self::EXPORT_TRANSFORMATIONS_OPTION,
+		// __( 'Export Transformations', 'newspack-print' ),
+		// [ __CLASS__, 'render_textarea_field' ],
+		// self::SETTINGS_OPTION,
+		// 'newspack_print_general_settings',
+		// [
+		// 'label_for'   => self::EXPORT_TRANSFORMATIONS_OPTION,
+		// 'description' => __( 'Transformations to apply to the exported data in JSON format.', 'newspack-print' ),
+		// ]
+		// );
 
 		add_settings_field(
 			self::SYNC_CRON_SCHEDULE,
@@ -449,6 +500,21 @@ class Settings {
 	 * @return mixed|null Option value.
 	 */
 	public static function get_setting( $option ) {
+
+		// Not using UI yet to set up mapping and transformations.
+		if ( self::CSV_MAPPING_OPTION === $option ) {
+			return wp_json_encode( self::$default_mapping );
+		}
+		if ( self::IMPORT_TRANSFORMATIONS_OPTION === $option ) {
+			return self::$default_import_transformations;
+		}
+		if ( self::EXPORT_TRANSFORMATIONS_OPTION === $option ) {
+			return self::$default_export_transformations;
+		}
+
+
+
+
 		$options = get_option( self::SETTINGS_OPTION );
 
 		if ( ! isset( $options[ $option ] ) ) {

@@ -38,8 +38,8 @@ class Initializer {
 		/**
 		 * Schedule the cron job.
 		 */
-		add_action( 'update_option_' . Settings::SETTINGS_OPTION, array( __CLASS__, 'schedule_cron_jobs' ), 10, 2 );
-		add_action( self::CRON_JOB_HOOK, array( $this, 'users_import_sync' ) );
+		// add_action( 'update_option_' . Settings::SETTINGS_OPTION, array( __CLASS__, 'schedule_cron_jobs' ), 10, 2 );
+		// add_action( self::CRON_JOB_HOOK, array( $this, 'users_import_sync' ) );
 
 		/**
 		 * TODO: To be scheduled as a cron job. Not on every page load.

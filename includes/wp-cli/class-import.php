@@ -7,7 +7,7 @@
 
 namespace Newspack\PrintCirculationIntegration\CLI;
 
-use \WP_CLI;
+use WP_CLI;
 use Newspack\PrintCirculationIntegration\Import as Import_Module;
 use Newspack\PrintCirculationIntegration\Import_Parser;
 use Newspack\PrintCirculationIntegration\Newspack_Fields;
@@ -24,8 +24,11 @@ class Import {
 	 * [--batch-size=<batch-size>]
 	 * : The size of each batch. Default is 20.
 	 *
+	 * * [--csv-path=<csv-path>]
+	 * : The path to the CSV file. Default is the what is in Settings.
+	 *
 	 * [--dry-run]
-	 * : If set, the import will be a dry run and no changes will be made to the database.
+	 * : If set, This will only test the mapping and output the processed rows. No changes will be made to the database.
 	 *
 	 * ## EXAMPLES
 	 *
@@ -37,6 +40,8 @@ class Import {
 	public static function import_users( $args, $assoc_args ) {
 		$batch_size = isset( $assoc_args['batch-size'] ) ? intval( $assoc_args['batch-size'] ) : 20;
 		$is_dry_run = isset( $assoc_args['dry-run'] );
+		$csv_path   = isset( $assoc_args['csv-path'] ) ? $assoc_args['csv-path'] : '';
+		$csv_path   = ! empty( $csv_path ) ? $csv_path : Settings::get_setting( Settings::CSV_IMPORT_PATH_OPTION );
 
 		WP_CLI::log( 'Starting the import process...' );
 
@@ -44,89 +49,42 @@ class Import {
 		$import_module = new Import_Module();
 
 		// Fetch the CSV file.
-		$fetch_csv_status = $import_module->fetch_csv_file();
-
-		if ( is_wp_error( $fetch_csv_status ) ) {
-			WP_CLI::error( 'Error fetching CSV file: ' . $fetch_csv_status->get_error_message() );
-			return;
-		}
-
-		WP_CLI::line( WP_CLI::colorize( '%CCSV file fetched successfully.%n' ) );
+		$import_module->set_csv_path( $csv_path );
 
 		WP_CLI::log( 'Starting Processing the users...' );
+
+		$job_id = 'CLI-import-' . gmdate( 'Y-m-d-H:i:s' );
+		WP_CLI::log( 'Job ID: ' . $job_id );
+		Logger::set_job_id( $job_id );
 
 		// Initialize flags and variables.
 		$offset        = 0;
 		$count         = 0;
 		$skipped_users = [];
 
-
-		/**
-		 * TODO: Remove this in the future.
-		 */
 		if ( $is_dry_run ) {
-			// Only process the first 5 users.
-			$batch_size = 5;
-
-			WP_CLI::line( WP_CLI::colorize( '%Y---Running Dry run---%n' ) );
-			WP_CLI::line( WP_CLI::colorize( '%YOverriding batch size to 5 for dry run.%n' ) );
-
-			global $wpdb;
-
-			$wpdb->query( 'SET autocommit = 0' );
+			$fields = array_keys( Newspack_Fields::get_fields() );
+			$result = $import_module->test_import_users();
+			WP_CLI\Utils\format_items(
+				'table',
+				$result,
+				$fields
+			);
+		} else {
+			$import_module->import_users( $batch_size );
 		}
 
-		// Loop through the CSV file and import users in batches.
-		while ( true ) {
-			$processed_users = $import_module->get_users_to_import( $batch_size, $offset );
+		// WP_CLI::success( sprintf( 'Processed a total of %d batches of users.', $count ) );
 
-			if ( is_wp_error( $processed_users ) ) {
-				return $processed_users;
-			}
+		// // Log the skipped users.
+		// if ( ! empty( $skipped_users ) ) {
+		// WP_CLI::line( WP_CLI::colorize( '%Y-------Skipped users with missing data -------%n' ) );
 
-			/**
-			 * Segregate the users into valid and skipped.
-			 * Valid users are those that have all the fields.
-			 */
-			$users         = $processed_users['valid_users'];
-			$skipped_users = array_merge( $skipped_users, $processed_users['skipped_users'] );
+		// foreach ( $skipped_users as $skipped_user ) {
+		// WP_CLI::log( sprintf( 'Skipped user: %s', json_encode( $skipped_user ) ) );
+		// }
+		// }
 
-			if ( empty( $users ) ) {
-				// No more users to import.
-				break;
-			}
-
-			// Process the valid users.
-			foreach ( $users as $user ) {
-				$parsed_user = Import_Parser::parse_line( $user );
-				Import_Module::process_user( $parsed_user );
-				WP_CLI::log( sprintf( 'Processed user: %s', $parsed_user[ Newspack_Fields::CIRCULATION_ID_FIELD ] ) );
-			}
-
-			$batch_process_message = sprintf( 'Processed Batch %d containing %d users.', $count + 1, count( $users ) );
-			WP_CLI::line( WP_CLI::colorize( '%g' . $batch_process_message . '%n' ) );
-
-			$offset += $batch_size;
-			$count++;
-
-			// If dry run is enabled, break after the first batch.
-			if ( $is_dry_run && $count > 1 ) {
-				WP_CLI::line( WP_CLI::colorize( '%YDry run completed. No changes made to the database.%n' ) );
-				break;
-			}
-		}
-
-		WP_CLI::success( sprintf( 'Processed a total of %d batches of users.', $count ) );
-
-		// Log the skipped users.
-		if ( ! empty( $skipped_users ) ) {
-			WP_CLI::line( WP_CLI::colorize( '%Y-------Skipped users with missing data -------%n' ) );
-
-			foreach ( $skipped_users as $skipped_user ) {
-				WP_CLI::log( sprintf( 'Skipped user: %s', json_encode( $skipped_user ) ) );
-			}
-		}
-
-		Logger::add_log( sprintf( 'Processed a total of %d batches of users via CLI.', $count ) );
+		// Logger::add_log( sprintf( 'Processed a total of %d batches of users via CLI.', $count ) );
 	}
 }

@@ -26,7 +26,7 @@ class Newspack_Fields {
 	const ZIP_FIELD            = 'zip';
 	const PHONE_FIELD          = 'phone';
 	const STATUS               = 'status';
-	const EXTRA_FIELD          = 'newspack_circ_extra';
+	// const EXTRA_FIELD          = 'newspack_circ_extra';
 
 	/**
 	 * Get the fields to be mapped.
@@ -43,12 +43,12 @@ class Newspack_Fields {
 			self::FIRST_NAME_FIELD     => [
 				'label'    => 'First Name',
 				'type'     => 'user_meta',
-				'db_field' => 'newspack_print_circ_billing_first_name',
+				'db_field' => 'billing_first_name',
 			],
 			self::LAST_NAME_FIELD      => [
 				'label'    => 'Last Name',
 				'type'     => 'user_meta',
-				'db_field' => 'newspack_print_circ_billing_last_name',
+				'db_field' => 'billing_last_name',
 			],
 			self::DISPLAY_NAME_FIELD   => [
 				'label'    => 'Display Name',
@@ -63,38 +63,38 @@ class Newspack_Fields {
 			self::ADDRESS_FIELD        => [
 				'label'    => 'Address',
 				'type'     => 'user_meta',
-				'db_field' => 'newspack_print_circ_billing_address_1',
+				'db_field' => 'billing_address_1',
 			],
 			self::CITY_FIELD           => [
 				'label'    => 'City',
 				'type'     => 'user_meta',
-				'db_field' => 'newspack_print_circ_billing_city',
+				'db_field' => 'billing_city',
 			],
 			self::STATE_FIELD          => [
 				'label'    => 'State',
 				'type'     => 'user_meta',
-				'db_field' => 'newspack_print_circ_billing_state',
+				'db_field' => 'billing_state',
 			],
 			self::ZIP_FIELD            => [
 				'label'    => 'Zip',
 				'type'     => 'user_meta',
-				'db_field' => 'newspack_print_circ_billing_postcode',
+				'db_field' => 'billing_postcode',
 			],
 			self::PHONE_FIELD          => [
 				'label'    => 'Phone',
 				'type'     => 'user_meta',
-				'db_field' => 'newspack_print_circ_billing_phone',
+				'db_field' => 'billing_phone',
 			],
 			self::STATUS               => [
 				'label'    => 'Status',
 				'type'     => 'user_meta',
 				'db_field' => 'newspack_print_circ_status',
 			],
-			self::EXTRA_FIELD          => [
-				'label'    => 'Extra Data',
-				'type'     => 'extra_data',
-				'db_field' => 'newspack_circ_extra_data',
-			],
+			// self::EXTRA_FIELD          => [
+			// 'label'    => 'Extra Data',
+			// 'type'     => 'extra_data',
+			// 'db_field' => 'newspack_circ_extra_data',
+			// ],
 		];
 	}
 
@@ -106,7 +106,7 @@ class Newspack_Fields {
 	 */
 	public static function get_field( $slug ) {
 		$fields = self::get_fields();
-		
+
 		if ( isset( $fields[ $slug ] ) ) {
 			return $fields[ $slug ];
 		}

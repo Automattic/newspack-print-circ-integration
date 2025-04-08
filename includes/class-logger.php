@@ -15,11 +15,6 @@ use WP_CLI;
 class Logger {
 
 	/**
-	 * Option name for storing logs.
-	 */
-	const LOG_OPTION = 'newspack_print_circ_logs';
-
-	/**
 	 * The current job ID.
 	 *
 	 * This will be used to identify the current job in the logs.
@@ -54,6 +49,7 @@ class Logger {
 			}
 			// Append the log message to the file.
 			$log_message = $message . PHP_EOL;
+			file_put_contents( $log_path, $log_message, FILE_APPEND );
 		}
 
 		// output the log message to the console if WP-CLI is available.

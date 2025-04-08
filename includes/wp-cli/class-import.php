@@ -9,10 +9,9 @@ namespace Newspack\PrintCirculationIntegration\CLI;
 
 use WP_CLI;
 use Newspack\PrintCirculationIntegration\Import as Import_Module;
-use Newspack\PrintCirculationIntegration\Import_Parser;
 use Newspack\PrintCirculationIntegration\Newspack_Fields;
 use Newspack\PrintCirculationIntegration\Logger;
-use WP;
+use Newspack\PrintCirculationIntegration\Settings;
 
 class Import {
 
@@ -24,7 +23,7 @@ class Import {
 	 * [--batch-size=<batch-size>]
 	 * : The size of each batch. Default is 20.
 	 *
-	 * * [--csv-path=<csv-path>]
+	 * [--csv-path=<csv-path>]
 	 * : The path to the CSV file. Default is the what is in Settings.
 	 *
 	 * [--dry-run]
@@ -58,9 +57,9 @@ class Import {
 		Logger::set_job_id( $job_id );
 
 		// Initialize flags and variables.
-		$offset        = 0;
-		$count         = 0;
-		$skipped_users = [];
+		$offset          = 0;
+		$count           = 0;
+		$total_processed = 0;
 
 		if ( $is_dry_run ) {
 			$fields = array_keys( Newspack_Fields::get_fields() );
@@ -70,21 +69,31 @@ class Import {
 				$result,
 				$fields
 			);
-		} else {
-			$import_module->import_users( $batch_size );
+			WP_CLI::log( 'Dry run completed. No changes made to the database.' );
+			return;
 		}
 
-		// WP_CLI::success( sprintf( 'Processed a total of %d batches of users.', $count ) );
+		while ( true ) {
+			WP_CLI::log( sprintf( 'Processing batch with offset %d and batch size %d...', $offset, $batch_size ) );
 
-		// // Log the skipped users.
-		// if ( ! empty( $skipped_users ) ) {
-		// WP_CLI::line( WP_CLI::colorize( '%Y-------Skipped users with missing data -------%n' ) );
+			$result = $import_module->import_users( $batch_size, $offset );
 
-		// foreach ( $skipped_users as $skipped_user ) {
-		// WP_CLI::log( sprintf( 'Skipped user: %s', json_encode( $skipped_user ) ) );
-		// }
-		// }
+			if ( is_wp_error( $result ) ) {
+				WP_CLI::error( $result->get_error_message() );
+				break;
+			}
 
-		// Logger::add_log( sprintf( 'Processed a total of %d batches of users via CLI.', $count ) );
+			if ( $result === true ) {
+				$total_processed += $batch_size;
+				$offset += $batch_size;
+			} else {
+				WP_CLI::log( 'No more users to process. Stopping...' );
+				break;
+			}
+
+			$count++;
+		}
+
+		Logger::add_log( sprintf( 'Processed a total of %d batches of users via CLI.', $count ) );
 	}
 }

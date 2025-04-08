@@ -122,57 +122,25 @@ class Import {
 	 * Import users from the CSV file.
 	 *
 	 * @param int $batch_size  Number of users to import in a batch.
+	 * @param int $offset      Offset for the CSV file.
 	 *
 	 * @return bool|WP_Error True if the users were imported successfully, WP_Error otherwise.
 	 */
-	public function import_users( $batch_size = 100 ) {
-		/**
-		 * Initisize flags.
-		 */
-		$offset = 0;
-		$count  = 0;
+	public function import_users( $batch_size = 100, $offset = 0 ) {
+		// Get users to import.
+		$processed_users = $this->get_users_to_import( $batch_size, $offset );
 
-		// Loop through the CSV file and import users in batches.
-		while ( true ) {
-
-			$processed_users = $this->get_users_to_import( $batch_size, $offset );
-
-			if ( is_wp_error( $processed_users ) ) {
-				return $processed_users;
-			}
-
-			if ( ! isset( $processed_users['valid_users'] ) || empty( $processed_users['valid_users'] ) ) {
-				// No more users to import.
-				break;
-			}
-
-			if ( false ) {
-				// NOTE: adding things to the event queue should be done elsewhere.
-				// When a CRON runs and triggers the import process, it doesn't need to read the CSV and add the users to the queue.
-				// It should just start a new process. The async job itself, when initialized, should read the CSV to set the totals, but only store the current offset.
-				// Them each individual task() should read the CSV and process the users.
-				// Also note that we are not tied to the WP_Background_Process class necessarily. If it's easier, we can implement something ourselves.
-				// Only process valid users.
-				$users = $processed_users['valid_users'];
-
-				// Push the users as a batch to the import process.
-				$this->import_process->push_to_queue( $users );
-				$this->import_process->save();
-			} else {
-				$this->import_users_batch( $processed_users['valid_users'] );
-			}
-
-
-			$offset += $batch_size;
-			$count++;
+		if ( is_wp_error( $processed_users ) ) {
+			return new WP_Error( 'error', 'Failed to get users to import.' );
 		}
 
-		if ( false ) {
-			$this->import_process->set_total_batch( $count );
-
-			// Dispatch the import process.
-			$this->import_process->dispatch();
+		if ( ! isset( $processed_users['valid_users'] ) || empty( $processed_users['valid_users'] ) ) {
+			// No more users to import.
+			Logger::add_log( 'No more users to import.' );
+			return false;
 		}
+
+		$this->import_users_batch( $processed_users['valid_users'] );
 
 		return true;
 	}
@@ -209,7 +177,6 @@ class Import {
 		}
 
 		foreach ( $users as $user ) {
-
 			Logger::add_log( 'Processing user: ' . print_r( $user, true ) );
 			$parsed_user = Import_Parser::parse_line( $user );
 			Logger::add_log( 'Parsed user: ' . print_r( $parsed_user, true ) );
@@ -234,7 +201,6 @@ class Import {
 		$parsed_users = [];
 
 		foreach ( $users as $user ) {
-
 			Logger::add_log( 'Test Processing user: ' . print_r( $user, true ) );
 			$parsed_user = Import_Parser::parse_line( $user );
 			$parsed_users[] = $parsed_user;

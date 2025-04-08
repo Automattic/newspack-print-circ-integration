@@ -90,11 +90,6 @@ class Newspack_Fields {
 				'type'     => 'user_meta',
 				'db_field' => 'newspack_print_circ_status',
 			],
-			// self::EXTRA_FIELD          => [
-			// 'label'    => 'Extra Data',
-			// 'type'     => 'extra_data',
-			// 'db_field' => 'newspack_circ_extra_data',
-			// ],
 		];
 	}
 
@@ -155,14 +150,6 @@ class Newspack_Fields {
 			// If its a user property.
 			$user = get_user_by( 'id', $user_id );
 			return $user->{$field['db_field']};
-		} else {
-			// Retrieve from the user's extra data.
-			$extra_field = self::get_field( self::EXTRA_FIELD );
-			$extra_data = get_user_meta( $user_id, $extra_field['db_field'], true );
-			if ( ! is_array( $extra_data ) ) {
-				$extra_data = [];
-			}
-			return $extra_data[ $slug ] ?? null;
 		}
 	}
 
@@ -189,15 +176,6 @@ class Newspack_Fields {
 			$user = get_user_by( 'id', $user_id );
 			$user->{$field['db_field']} = $value;
 			wp_update_user( $user );
-		} else {
-			$extra_field = self::get_field( self::EXTRA_FIELD );
-			// Store as a part of the user's extra data.
-			$extra_data = get_user_meta( $user_id, $extra_field['db_field'], true );
-			if ( ! is_array( $extra_data ) ) {
-				$extra_data = [];
-			}
-			$extra_data[ $slug ] = $value;
-			update_user_meta( $user_id, $extra_field['db_field'], $extra_data );
 		}
 	}
 }

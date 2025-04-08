@@ -61,11 +61,6 @@ class Settings {
 	const SYNC_CRON_SCHEDULE = 'newspack_print_circ_sync_cron_schedule';
 
 	/**
-	 * Is logging enabled?
-	 */
-	const LOGGING_ENABLED_OPTION = 'logging_enabled';
-
-	/**
 	 * The mapping of Newspack fields to Print Circulation System fields.
 	 *
 	 * Newspack fields on the left, Print Circulation System fields on the right.
@@ -92,16 +87,16 @@ class Settings {
 	 * @var string
 	 */
 	public static $default_import_transformations = 'function( $line ) {
-                // Join the address street name and st number into a single address field.
-                $line["address"] = $line["Street Name"] . " " . $line["St Num"];
-                unset( $line["Street Name"] );
+				// Join the address street name and st number into a single address field.
+				$line["address"] = $line["Street Name"] . " " . $line["St Num"];
+				unset( $line["Street Name"] );
 				unset( $line["St Num"] );
 
-                // Set display name;
-                $line["display_name"] = $line["First Name"] . " " . $line["Last Name"];
+				// Set display name;
+				$line["display_name"] = $line["First Name"] . " " . $line["Last Name"];
 
-                return $line;
-            }';
+				return $line;
+			}';
 
 	/**
 	 * Default export transformations.
@@ -109,12 +104,12 @@ class Settings {
 	 * @var string
 	 */
 	public static $default_export_transformations = 'function( $line ) {
-                // Break address into street name and st number using a regex to extract the numeric part.
-                $line["Street Name"] = preg_replace("/(\d+)$/", ", $line["address"]);
-                $line["St Num"] = preg_replace("/^[^0-9]*(\d+)$/", "$1", $line["address"]);
+				// Break address into street name and st number using a regex to extract the numeric part.
+				$line["Street Name"] = preg_replace("/(\d+)$/", ", $line["address"]);
+				$line["St Num"] = preg_replace("/^[^0-9]*(\d+)$/", "$1", $line["address"]);
 
-                return $line;
-            }';
+				return $line;
+			}';
 
 	/**
 	 * Runs the initialization.
@@ -123,7 +118,6 @@ class Settings {
 		// Setup Hooks & Filters.
 		add_action( 'admin_init', array( __CLASS__, 'register_settings' ) );
 		add_action( 'admin_menu', array( __CLASS__, 'register_settings_page' ) );
-		add_action( 'admin_menu', [ __CLASS__, 'register_logs_page' ] );
 	}
 
 	/**
@@ -203,18 +197,6 @@ class Settings {
 			[
 				'label_for'   => self::SYNC_CRON_SCHEDULE,
 				'description' => __( 'Schedule for the Print Circulation System users sync.', 'newspack-print' ),
-			]
-		);
-
-		add_settings_field(
-			self::LOGGING_ENABLED_OPTION,
-			__( 'Enable Logging?', 'newspack-print' ),
-			[ __CLASS__, 'render_checkbox_field' ],
-			self::SETTINGS_OPTION,
-			'newspack_print_general_settings',
-			[
-				'label_for'   => self::LOGGING_ENABLED_OPTION,
-				'description' => __( 'Enable logging for the integration.', 'newspack-print' ),
 			]
 		);
 
@@ -435,11 +417,6 @@ class Settings {
 			$sanitized[ self::SYNC_CRON_SCHEDULE ] = sanitize_text_field( $input[ self::SYNC_CRON_SCHEDULE ] );
 		}
 
-		// Sanitize logging enabled.
-		if ( isset( $input[ self::LOGGING_ENABLED_OPTION ] ) ) {
-			$sanitized[ self::LOGGING_ENABLED_OPTION ] = (bool) $input[ self::LOGGING_ENABLED_OPTION ];
-		}
-
 		return $sanitized;
 	}
 
@@ -512,9 +489,6 @@ class Settings {
 			return self::$default_export_transformations;
 		}
 
-
-
-
 		$options = get_option( self::SETTINGS_OPTION );
 
 		if ( ! isset( $options[ $option ] ) ) {
@@ -522,66 +496,5 @@ class Settings {
 		}
 
 		return $options[ $option ];
-	}
-
-	/**
-	 * Register the logs sub-page.
-	 */
-	public static function register_logs_page() {
-		add_submenu_page(
-			self::SETTINGS_OPTION,
-			__( 'Newspack Print Logs', 'newspack-print' ),
-			__( 'Logs', 'newspack-print' ),
-			'manage_options',
-			'newspack_print_logs',
-			[ __CLASS__, 'render_logs_page' ]
-		);
-	}
-
-	/**
-	 * Render the logs page.
-	 */
-	public static function render_logs_page() {
-		$logs = Logger::get_logs();
-		?>
-		<div class="wrap">
-			<h1><?php esc_html_e( 'Newspack Print Logs', 'newspack-print' ); ?></h1>
-			<table class="widefat fixed" cellspacing="0">
-				<thead>
-					<tr>
-						<th><?php esc_html_e( 'Time', 'newspack-print' ); ?></th>
-						<th><?php esc_html_e( 'Message', 'newspack-print' ); ?></th>
-					</tr>
-				</thead>
-				<tbody>
-					<?php if ( empty( $logs ) ) : ?>
-						<tr>
-							<td colspan="2"><?php esc_html_e( 'No logs available.', 'newspack-print' ); ?></td>
-						</tr>
-					<?php else : ?>
-						<?php foreach ( $logs as $log ) : ?>
-							<tr>
-								<td><?php echo esc_html( $log['time'] ); ?></td>
-								<td><?php echo esc_html( $log['message'] ); ?></td>
-							</tr>
-						<?php endforeach; ?>
-					<?php endif; ?>
-				</tbody>
-			</table>
-			<div class="tablenav bottom">
-				<form method="post" action="">
-					<?php wp_nonce_field( 'clear_logs_action', 'clear_logs_nonce' ); ?>
-					<input type="submit" name="clear_logs" class="button button-secondary" value="<?php esc_attr_e( 'Clear Logs', 'newspack-print' ); ?>">
-				</form>
-			</div>
-		</div>
-		<?php
-
-		// Handle log clearing.
-		if ( isset( $_POST['clear_logs'] ) && check_admin_referer( 'clear_logs_action', 'clear_logs_nonce' ) ) {
-			Logger::clear_logs();
-			wp_safe_redirect( admin_url( 'admin.php?page=newspack_print_logs' ) );
-			exit;
-		}
 	}
 }

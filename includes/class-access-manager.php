@@ -28,26 +28,32 @@ class Access_Manager {
 	 *
 	 * @param int    $user_id User ID.
 	 * @param array  $plan_ids Optional. Specific plan IDs to grant. Default empty array (uses configured plans).
-	 * @param string $source Optional. Source of the membership. Default 'print-circ-import'.
+	 * @param string $source Optional. Source of the membership. Default 'newspack-print-circ-import'.
 	 * @return bool|WP_Error True on success, False on no plans granted, WP_Error on failure.
 	 */
-	public static function grant_membership_access( $user_id, $plan_ids = [], $source = 'print-circ-import' ) {
-		if ( ! function_exists( 'wc_memberships_get_user_membership' ) ) {
+	public static function grant_membership_access( $user_id, $plan_ids = [], $source = 'newspack-print-circ-import' ) {
+		if ( ! class_exists( 'WC_Memberships_User_Membership' ) ) {
 			return new WP_Error(
-				'membership_not_available',
+				'missing_memberships_class',
 				__( 'WooCommerce Memberships is not active.', 'newspack-print-circ' )
 			);
 		}
 
+		/**
+		 * Set default plans to grant.
+		 */
 		$default_plans_to_grant = ! empty( $plan_ids ) ? $plan_ids : self::get_membership_plans();
 		$default_plans_to_grant = array_map( 'absint', $default_plans_to_grant );
+		$user_status            = Newspack_Fields::get_field_value( Newspack_Fields::STATUS, $user_id );
 
 		if ( empty( $default_plans_to_grant ) ) {
 			return false;
 		}
 
-		$existing_memberships = self::get_user_active_memberships( $user_id );
-		$plans_to_grant       = array_diff( $default_plans_to_grant, $existing_memberships );
+		/**
+		 * Check for which plans to update and which to grant.
+		 */
+		$existing_memberships = self::get_user_memberships( $user_id );
 
 		// Log existing memberships.
 		if ( ! empty( $existing_memberships ) ) {
@@ -59,6 +65,39 @@ class Access_Manager {
 				)
 			);
 		}
+
+		/**
+		 * Next we update the status of any existing memberships that are also in the default plans to grant.
+		 * This is to ensure that if a user already has a membership, we can update its status.
+		 * This is useful for cases where the user has a membership but its status changes.
+		 */
+		$plans_to_update = array_intersect( $default_plans_to_grant, $existing_memberships );
+
+		// Update existing memberships.
+		if ( ! empty( $plans_to_update ) ) {
+			foreach ( $plans_to_update as $plan_id ) {
+				$membership = wc_memberships_get_user_membership( $user_id, $plan_id );
+	
+				if ( ! is_wp_error( $membership ) ) {
+					// Update status.
+					$membership->update_status( $user_status );
+				}
+			}
+
+			Logger::add_log(
+				sprintf(
+					'Updated membership plans %s for user %d',
+					implode( ', ', $plans_to_update ),
+					$user_id
+				)
+			);
+		}
+
+		/**
+		 * Now we check for which plans to grant.
+		 * New User Memberships are created for any plans that are in the default plans to grant but not in the existing memberships.
+		 */
+		$plans_to_grant = array_diff( $default_plans_to_grant, $existing_memberships );
 
 		// Log if no new plans to grant.
 		if ( empty( $plans_to_grant ) ) {
@@ -73,12 +112,13 @@ class Access_Manager {
 				[
 					'user_id'         => $user_id,
 					'plan_id'         => $plan_id,
-					'status'          => Newspack_Fields::get_field_value( Newspack_Fields::STATUS, $user_id ),
 					'source'          => $source,
 				]
 			);
 
 			if ( ! is_wp_error( $membership ) ) {
+				// Update status.
+				$membership->update_status( $user_status );
 				$granted_plans[] = $plan_id;
 			}
 		}
@@ -148,19 +188,38 @@ class Access_Manager {
 	 * @return array Array of active membership plan IDs.
 	 */
 	public static function get_user_active_memberships( $user_id ) {
+		if ( ! function_exists( 'wc_memberships_get_user_active_memberships' ) ) {
+			return [];
+		}
+
+		$memberships = wc_memberships_get_user_active_memberships( $user_id );
+		$active_plans = [];
+
+		foreach ( $memberships as $membership ) {
+			$active_plans[] = absint( $membership->get_plan_id() );
+		}
+
+		return $active_plans;
+	}
+
+	/**
+	 * Get all memberships for a user.
+	 *
+	 * @param int $user_id User ID.
+	 * @return array Array of membership plan IDs.
+	 */
+	public static function get_user_memberships( $user_id ) {
 		if ( ! function_exists( 'wc_memberships_get_user_memberships' ) ) {
 			return [];
 		}
 
 		$memberships = wc_memberships_get_user_memberships( $user_id );
-		$active_plans = [];
+		$plans       = [];
 
 		foreach ( $memberships as $membership ) {
-			if ( $membership->is_active() ) {
-				$active_plans[] = absint( $membership->get_plan_id() );
-			}
+			$plans[] = absint( $membership->get_plan_id() );
 		}
 
-		return $active_plans;
+		return $plans;
 	}
 }

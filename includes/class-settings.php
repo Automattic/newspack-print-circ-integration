@@ -101,6 +101,9 @@ class Settings {
 					$line["display_name"] = "Mystery Subscriber";
 				}
 
+				// Set the status to active if not set.
+				$line["Status"] = "Active" === $line["Status"] ? "active" : "paused";
+
 				return $line;
 			}';
 

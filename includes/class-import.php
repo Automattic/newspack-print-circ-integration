@@ -398,9 +398,21 @@ class Import {
 
 			if ( ! is_wp_error( self::update_user( $user_id, $user ) ) ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf
 				// TODO: Log the user update.
-				$value = 'ok';
+				Logger::add_log( 'User updated: ' . $user_id );
 			} else { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedElse
 				// TODO: Log the user update failure.
+				Logger::add_log( 'Failed to update user: ' . $user_id );
+				return;
+			}
+
+			// Grant membership plans.
+			$grant_membership = Access_Manager::grant_membership_access( $user_id );
+			if ( is_wp_error( $grant_membership ) ) {
+				Logger::add_log( 'Failed to grant membership access to user: ' . $user_id );
+				return;
+			} elseif ( false === $grant_membership ) {
+				Logger::add_log( 'No new membership access granted to user: ' . $user_id );
+				return;
 			}
 		}
 	}

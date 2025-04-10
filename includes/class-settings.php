@@ -40,7 +40,7 @@ class Settings {
 	const DEFAULT_SUBSCRIPTION_PRODUCTS_OPTION = 'default_subscription_products';
 
 	/**
-	 * TBD. Default memberships to be granted to the imported users.
+	 * Default memberships to be granted to the imported users.
 	 */
 	const DEFAULT_MEMBERSHIPS_OPTION = 'new_users_granted_membership_plan_id';
 

@@ -93,7 +93,13 @@ class Settings {
 				unset( $line["St Num"] );
 
 				// Set display name;
-				$line["display_name"] = $line["First Name"] . " " . $line["Last Name"];
+				if ( ! empty( $line["First Name"] ) || ! empty( $line["Last Name"] ) ) {
+					$line["display_name"] = sprintf( "%s %s", $line["First Name"], $line["Last Name"] );
+				} elseif ( ! empty( $line["Email"] ) ) {
+					$line["display_name"] = explode( "@", $line["Email"] )[0];
+				} else {
+					$line["display_name"] = "Mystery Subscriber";
+				}
 
 				return $line;
 			}';

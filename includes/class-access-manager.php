@@ -39,8 +39,28 @@ class Access_Manager {
 			);
 		}
 
-		$plans_to_grant = ! empty( $plan_ids ) ? $plan_ids : self::get_membership_plans();
+		$default_plans_to_grant = ! empty( $plan_ids ) ? $plan_ids : self::get_membership_plans();
+		$default_plans_to_grant = array_map( 'absint', $default_plans_to_grant );
 
+		if ( empty( $default_plans_to_grant ) ) {
+			return false;
+		}
+
+		$existing_memberships = self::get_user_active_memberships( $user_id );
+		$plans_to_grant       = array_diff( $default_plans_to_grant, $existing_memberships );
+
+		// Log existing memberships.
+		if ( ! empty( $existing_memberships ) ) {
+			Logger::add_log(
+				sprintf(
+					'User %d already has active memberships: %s',
+					$user_id,
+					implode( ', ', $existing_memberships )
+				)
+			);
+		}
+
+		// Log if no new plans to grant.
 		if ( empty( $plans_to_grant ) ) {
 			return false;
 		}
@@ -48,13 +68,6 @@ class Access_Manager {
 		$granted_plans = [];
 
 		foreach ( $plans_to_grant as $plan_id ) {
-			// Check if user already has this membership.
-			$existing_membership = wc_memberships_get_user_membership( $user_id, $plan_id );
-			
-			if ( $existing_membership ) {
-				continue;
-			}
-
 			// Create new membership.
 			$membership = wc_memberships_create_user_membership( 
 				[
@@ -144,7 +157,7 @@ class Access_Manager {
 
 		foreach ( $memberships as $membership ) {
 			if ( $membership->is_active() ) {
-				$active_plans[] = $membership->get_plan_id();
+				$active_plans[] = absint( $membership->get_plan_id() );
 			}
 		}
 

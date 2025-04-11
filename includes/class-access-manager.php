@@ -35,7 +35,7 @@ class Access_Manager {
 		if ( ! class_exists( 'WC_Memberships_User_Membership' ) ) {
 			return new WP_Error(
 				'missing_memberships_class',
-				__( 'WooCommerce Memberships is not active.', 'newspack-print-circ' )
+				__( 'WooCommerce Memberships is not active.', 'newspack-print' )
 			);
 		}
 

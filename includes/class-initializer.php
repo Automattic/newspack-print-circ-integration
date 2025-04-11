@@ -139,13 +139,13 @@ class Initializer {
 			if ( 1 === count( $inactive_plugins ) ) {
 				$plugin_notice = sprintf(
 					/* translators: %s: Plugin name. */
-					esc_html__( 'Newspack Print Circulation Integration requires %s to be installed and activated.', 'newspack-print-circ-integration' ),
+					esc_html__( 'Newspack Print Circulation Integration requires %s to be installed and activated.', 'newspack-print' ),
 					'<strong>' . esc_html( $inactive_plugins[0] ) . '</strong>'
 				);
 			} else {
 				$plugin_notice = sprintf(
 					/* translators: %s: Plugin names. */
-					esc_html__( 'Newspack Print Circulation Integration requires %s to be installed and activated.', 'newspack-print-circ-integration' ),
+					esc_html__( 'Newspack Print Circulation Integration requires %s to be installed and activated.', 'newspack-print' ),
 					'<strong>' . esc_html( implode( ', ', $inactive_plugins ) ) . '</strong>'
 				);
 			}

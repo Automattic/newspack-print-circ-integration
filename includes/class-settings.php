@@ -72,10 +72,10 @@ class Settings {
 		'status'       => 'Status',
 		'first_name'   => 'First Name',
 		'last_name'    => 'Last Name',
-		'display_name' => 'display_name',
+		'display_name' => 'Display Name',
 		'email'        => 'Email',
 		'phone'        => 'Phone- Last 4',
-		'address'      => 'address',
+		'address'      => 'Address',
 		'city'         => 'City',
 		'state'        => 'State',
 		'zip'          => 'Zip',
@@ -113,12 +113,20 @@ class Settings {
 	 * @var string
 	 */
 	public static $default_export_transformations = 'function( $line ) {
-				// Break address into street name and st number using a regex to extract the numeric part.
-				$line["Street Name"] = preg_replace("/(\d+)$/", ", $line["address"]);
-				$line["St Num"] = preg_replace("/^[^0-9]*(\d+)$/", "$1", $line["address"]);
+			// Break address into street name and st number using a regex to extract the numeric part.
+			if ( isset( $line["Address"] ) ) {
+				$line["St Num"]      = preg_match("/\\d+$/", $line["Address"], $matches) ? $matches[0] : "";
+				$line["Street Name"] = preg_replace("/\\s*\\d+$/", "", $line["Address"]);
+				unset( $line["Address"] );
+			}
 
-				return $line;
-			}';
+			// Convert status to match import format
+			if ( isset( $line["Status"] ) ) {
+				$line["Status"] = $line["Status"] === true ? "Active" : "Paused";
+			}
+
+			return $line;
+		}';
 
 	/**
 	 * Runs the initialization.

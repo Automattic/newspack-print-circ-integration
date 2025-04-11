@@ -110,9 +110,9 @@ class Access_Manager {
 			// Create new membership.
 			$membership = wc_memberships_create_user_membership( 
 				[
-					'user_id'         => $user_id,
-					'plan_id'         => $plan_id,
-					'source'          => $source,
+					'user_id' => $user_id,
+					'plan_id' => $plan_id,
+					'source'  => $source,
 				]
 			);
 
@@ -221,5 +221,15 @@ class Access_Manager {
 		}
 
 		return $plans;
+	}
+
+	/**
+	 * Get user's export status based on membership access.
+	 *
+	 * @param int $user_id User ID.
+	 * @return string Status ('active' if has access, 'inactive' if no access).
+	 */
+	public static function get_user_export_status( $user_id ) {
+		return self::has_any_membership_access( $user_id );
 	}
 }

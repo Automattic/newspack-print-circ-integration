@@ -59,6 +59,7 @@ class Export {
 
 		$csv_file = fopen( $this->csv_path, 'a' ); // WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 		if ( ! $csv_file ) {
+			Logger::add_log( 'Error opening CSV file for writing.' );
 			return new WP_Error( 'csv_error', __( 'Could not open CSV file for writing.', 'newspack-print' ) );
 		}
 
@@ -76,6 +77,8 @@ class Export {
 
 			$export_line = Export_Parser::parse_line( $user_data );
 
+			Logger::add_log( sprintf( 'Exporting user %d: %s', $user->ID, print_r( $export_line, true ) ) );
+
 			if ( $add_headers ) {
 				// Add headers only once.
 				$headers = array_keys( $export_line );
@@ -89,6 +92,7 @@ class Export {
 		}
 
 		fclose( $csv_file );
+		Logger::add_log( sprintf( 'Exported %d users to CSV.', count( $users ) ) );
 
 		return true;
 	}

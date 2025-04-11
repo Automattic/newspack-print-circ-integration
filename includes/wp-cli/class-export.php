@@ -34,13 +34,13 @@ class Export {
 	public static function export_users( $args, $assoc_args ) {
 		$batch_size = isset( $assoc_args['batch-size'] ) ? intval( $assoc_args['batch-size'] ) : 20;
 
-		WP_CLI::log( 'Starting the export process...' );
-
 		$export_module = new Export_Module();
 
 		$job_id = 'CLI-export-' . gmdate( 'Y-m-d-H:i:s' );
 		WP_CLI::log( 'Job ID: ' . $job_id );
 		Logger::set_job_id( $job_id );
+
+		Logger::add_log( 'Starting the export process...' );
 
 		$offset         = 0;
 		$total_exported = 0;
@@ -51,12 +51,12 @@ class Export {
 			$result = $export_module->export_users( $batch_size, $offset );
 
 			if ( is_wp_error( $result ) ) {
-				WP_CLI::error( $result->get_error_message() );
+				Logger::add_log( sprintf( 'Error exporting users: %s', $result->get_error_message() ) );
 				break;
 			}
 
 			if ( false === $result ) {
-				WP_CLI::log( 'No more users to process. Stopping...' );
+				Logger::add_log( 'No more users to export.' );
 				break;
 			}
 
@@ -65,6 +65,5 @@ class Export {
 		}
 
 		Logger::add_log( sprintf( 'Exported a total of %d users via CLI.', $total_exported ) );
-		WP_CLI::success( sprintf( 'Exported %d users.', $total_exported ) );
 	}
 }

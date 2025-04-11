@@ -203,6 +203,7 @@ class Initializer {
 		require_once __DIR__ . '/wp-cli/class-import.php';
 
 		WP_CLI::add_command( 'newspack-print import-users', [ 'Newspack\PrintCirculationIntegration\CLI\Import', 'import_users' ] );
+		WP_CLI::add_command( 'newspack-print export-users', [ 'Newspack\PrintCirculationIntegration\CLI\Export', 'export_users' ] );
 	}
 
 	/**

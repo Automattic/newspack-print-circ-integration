@@ -80,7 +80,7 @@ class Access_Manager {
 	
 				if ( ! is_wp_error( $membership ) ) {
 					// Update status.
-					$membership->update_status( $user_status );
+					$membership->update_status( $user_status, 'Membership status updated via CSV import.');
 				}
 			}
 
@@ -118,7 +118,7 @@ class Access_Manager {
 
 			if ( ! is_wp_error( $membership ) ) {
 				// Update status.
-				$membership->update_status( $user_status );
+				$membership->update_status( $user_status, 'Membership created via CSV import.' );
 				$granted_plans[] = $plan_id;
 			}
 		}

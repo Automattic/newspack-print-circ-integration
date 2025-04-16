@@ -121,6 +121,11 @@ class Export {
 			$offset          += $batch_size;
 		}
 
+		if ( empty( $exported_users ) ) {
+			Logger::add_log( 'No users to export.' );
+			return;
+		}
+
 		$exported_users = array_merge( ...$exported_users );
 		$header         = array_keys( $exported_users[0] );
 

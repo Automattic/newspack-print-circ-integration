@@ -14,19 +14,6 @@ use Newspack\PrintCirculationIntegration\Import_Process;
  * Importer class to handle the CSV import.
  */
 class Import {
-	/**
-	 * CSV file.
-	 *
-	 * @var resource
-	 */
-	private $csv_file;
-
-	/**
-	 * CSV file handle.
-	 *
-	 * @var string
-	 */
-	private $csv_handle = 'newspack-print-circ-import.csv';
 
 	/**
 	 * CSV file path.
@@ -50,7 +37,7 @@ class Import {
 		 * Initialize the import process.
 		 * Background processes needs to be initialized early on in plugins_loaded.
 		 */
-		$this->import_process = new Import_Process();
+		// $this->import_process = new Import_Process();
 	}
 
 	/**
@@ -60,62 +47,6 @@ class Import {
 	 */
 	public function set_csv_path( $csv_path ) {
 		$this->csv_path = $csv_path;
-	}
-
-	/**
-	 * Set the CSV file handle.
-	 *
-	 * @param resource $csv_file CSV file handle.
-	 */
-	private function set_csv_file( $csv_file ) {
-		$this->csv_file = $csv_file;
-	}
-
-	/**
-	 * Cleanup function.
-	 */
-	public function clean_up() {
-		if ( is_resource( $this->csv_file ) ) {
-			// Safely close the file and delete it.
-			fclose( $this->csv_file );
-			unlink( get_temp_dir() . $this->csv_handle ); // phpcs:ignore
-		}
-	}
-
-	/**
-	 * Fetch the CSV file from the URL and set the CSV file handle.
-	 *
-	 * @return bool|WP_Error True if the CSV file was fetched successfully, WP_Error otherwise.
-	 */
-	public function fetch_csv_file() {
-		// Fetch the CSV file from the URL.
-		$csv_path = Settings::get_setting( Settings::CSV_IMPORT_PATH_OPTION );
-		$response = wp_remote_get( $csv_path ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get
-
-		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
-			return new WP_Error( 'error', 'Failed to fetch the CSV file.' );
-		}
-
-		$body = wp_remote_retrieve_body( $response );
-
-		if ( empty( $body ) ) {
-			return new WP_Error( 'error', 'Empty CSV file.' );
-		}
-
-		// Create a temporary CSV file.
-		$temp_directory = get_temp_dir();
-		$csv_file       = fopen( $temp_directory . $this->csv_handle, 'w+' ); // phpcs:ignore
-
-		if ( ! $csv_file ) {
-			return new WP_Error( 'error', 'Failed to open CSV file for writing.' );
-		}
-
-		// Write the CSV file.
-		fwrite( $csv_file, $body ); // phpcs:ignore
-		rewind( $csv_file );
-		$this->set_csv_file( $csv_file );
-
-		return true;
 	}
 
 	/**
@@ -402,16 +333,15 @@ class Import {
 		if ( self::should_update_user( $user_id ) ) {
 
 			if ( ! is_wp_error( self::update_user( $user_id, $user ) ) ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf
-				// TODO: Log the user update.
 				Logger::add_log( 'User updated: ' . $user_id );
 			} else { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedElse
-				// TODO: Log the user update failure.
 				Logger::add_log( 'Failed to update user: ' . $user_id );
 				return;
 			}
 
 			// Grant membership plans.
 			$grant_membership = Access_Manager::grant_membership_access( $user_id );
+			Logger::add_log( 'Checking Membership access for user: ' . $user_id );
 			if ( is_wp_error( $grant_membership ) ) {
 				Logger::add_log( 'Failed to grant membership access to user: ' . $user_id );
 				return;

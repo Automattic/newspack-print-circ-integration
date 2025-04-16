@@ -13,6 +13,9 @@ use Newspack\PrintCirculationIntegration\Newspack_Fields;
 use Newspack\PrintCirculationIntegration\Logger;
 use Newspack\PrintCirculationIntegration\Settings;
 
+/**
+ * The CLI Import class.
+ */
 class Import {
 
 	/**

@@ -53,15 +53,15 @@ class Access_Manager {
 		/**
 		 * Check for which plans to update and which to grant.
 		 */
-		$existing_memberships = self::get_user_memberships( $user_id );
+		$existing_membership_plans = self::get_user_memberships( $user_id );
 
 		// Log existing memberships.
-		if ( ! empty( $existing_memberships ) ) {
+		if ( ! empty( $existing_membership_plans ) ) {
 			Logger::add_log(
 				sprintf(
-					'User %d already has active memberships: %s',
+					'User %d current membership plans: %s',
 					$user_id,
-					implode( ', ', $existing_memberships )
+					implode( ', ', $existing_membership_plans )
 				)
 			);
 		}
@@ -71,33 +71,45 @@ class Access_Manager {
 		 * This is to ensure that if a user already has a membership, we can update its status.
 		 * This is useful for cases where the user has a membership but its status changes.
 		 */
-		$plans_to_update = array_intersect( $default_plans_to_grant, $existing_memberships );
+		$plans_to_update = array_intersect( $default_plans_to_grant, $existing_membership_plans );
 
 		// Update existing memberships.
 		if ( ! empty( $plans_to_update ) ) {
 			foreach ( $plans_to_update as $plan_id ) {
 				$membership = wc_memberships_get_user_membership( $user_id, $plan_id );
-	
+
 				if ( ! is_wp_error( $membership ) ) {
-					// Update status.
-					$membership->update_status( $user_status, 'Membership status updated via CSV import.');
+
+					if ( $membership->get_status() !== $user_status ) {
+						// Update status.
+						$membership->update_status( $user_status, 'Membership status updated via CSV import.' );
+						Logger::add_log(
+							sprintf(
+								'Membership %d status updated to %s',
+								$membership->get_id(),
+								$user_status
+							)
+						);
+
+						$membership->add_note( 'Membership status updated to ' . $user_status . ' via CSV import.' );
+					} else {
+						Logger::add_log(
+							sprintf(
+								'Membership %d status is already %s',
+								$membership->get_id(),
+								$user_status
+							)
+						);
+					}
 				}
 			}
-
-			Logger::add_log(
-				sprintf(
-					'Updated membership plans %s for user %d',
-					implode( ', ', $plans_to_update ),
-					$user_id
-				)
-			);
 		}
 
 		/**
 		 * Now we check for which plans to grant.
 		 * New User Memberships are created for any plans that are in the default plans to grant but not in the existing memberships.
 		 */
-		$plans_to_grant = array_diff( $default_plans_to_grant, $existing_memberships );
+		$plans_to_grant = array_diff( $default_plans_to_grant, $existing_membership_plans );
 
 		// Log if no new plans to grant.
 		if ( empty( $plans_to_grant ) ) {
@@ -108,7 +120,7 @@ class Access_Manager {
 
 		foreach ( $plans_to_grant as $plan_id ) {
 			// Create new membership.
-			$membership = wc_memberships_create_user_membership( 
+			$membership = wc_memberships_create_user_membership(
 				[
 					'user_id' => $user_id,
 					'plan_id' => $plan_id,
@@ -120,20 +132,23 @@ class Access_Manager {
 				// Update status.
 				$membership->update_status( $user_status, 'Membership created via CSV import.' );
 				$granted_plans[] = $plan_id;
+
+				Logger::add_log(
+					sprintf(
+						'Created new membership %s to user %d with status %s',
+						$membership->get_id(),
+						$user_id,
+						$user_status
+					)
+				);
+
+				$membership->add_note( 'Membership created via CSV import.' );
 			}
 		}
 
 		if ( empty( $granted_plans ) ) {
 			return false;
 		}
-
-		Logger::add_log(
-			sprintf(
-				'Granted membership plans %s to user %d',
-				implode( ', ', $granted_plans ),
-				$user_id
-			)
-		);
 
 		return true;
 	}
@@ -179,27 +194,6 @@ class Access_Manager {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Get all active memberships for a user.
-	 *
-	 * @param int $user_id User ID.
-	 * @return array Array of active membership plan IDs.
-	 */
-	public static function get_user_active_memberships( $user_id ) {
-		if ( ! function_exists( 'wc_memberships_get_user_active_memberships' ) ) {
-			return [];
-		}
-
-		$memberships = wc_memberships_get_user_active_memberships( $user_id );
-		$active_plans = [];
-
-		foreach ( $memberships as $membership ) {
-			$active_plans[] = absint( $membership->get_plan_id() );
-		}
-
-		return $active_plans;
 	}
 
 	/**

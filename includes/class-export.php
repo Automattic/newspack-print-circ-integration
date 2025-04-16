@@ -42,11 +42,13 @@ class Export {
 		}
 
 		// Get users to export.
-		$users = get_users( [
-			'number'   => $batch_size,
-			'offset'   => $offset,
-			'meta_key' => Newspack_Fields::get_field( Newspack_Fields::CIRCULATION_ID_FIELD )['db_field'],
-		] );
+		$users = get_users(
+			[
+				'number'   => $batch_size,
+				'offset'   => $offset,
+				'meta_key' => Newspack_Fields::get_field( Newspack_Fields::CIRCULATION_ID_FIELD )['db_field'],
+			]
+		);
 
 		if ( empty( $users ) ) {
 			return false;
@@ -57,7 +59,7 @@ class Export {
 			$this->initialize_csv();
 		}
 
-		$csv_file = fopen( $this->csv_path, 'a' ); // WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		$csv_file = fopen( $this->csv_path, 'a' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 		if ( ! $csv_file ) {
 			Logger::add_log( 'Error opening CSV file for writing.' );
 			return new WP_Error( 'csv_error', __( 'Could not open CSV file for writing.', 'newspack-print' ) );
@@ -105,11 +107,13 @@ class Export {
 	 * @return bool|array False if no users, array of user data if successful.
 	 */
 	public function test_export_users( $batch_size = 20, $offset = 0 ) {
-		$users = get_users( [
-			'number'   => $batch_size,
-			'offset'   => $offset,
-			'meta_key' => Newspack_Fields::get_field( Newspack_Fields::CIRCULATION_ID_FIELD )['db_field'],
-		] );
+		$users = get_users(
+			[
+				'number'   => $batch_size,
+				'offset'   => $offset,
+				'meta_key' => Newspack_Fields::get_field( Newspack_Fields::CIRCULATION_ID_FIELD )['db_field'],
+			]
+		);
 
 		if ( empty( $users ) ) {
 			return false;
@@ -125,7 +129,7 @@ class Export {
 
 			$export_line = Export_Parser::parse_line( $user_data );
 
-			Logger::add_log( sprintf( 'Exporting user %d: %s', $user->ID, print_r( $export_line, true ) ) );
+			Logger::add_log( sprintf( 'Exporting user %d: %s', $user->ID, print_r( $export_line, true ) ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
 
 			if ( ! empty( $export_line ) ) {
 				$export_data[] = $export_line;

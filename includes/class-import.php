@@ -248,6 +248,11 @@ class Import {
 		// Get the header.
 		$header = fgetcsv( $csv_file );
 
+		// If csv export fields are not set set them to the header.
+		if ( 0 === $offset && empty( Settings::get_setting( Settings::CSV_FIELDS ) ) ) {
+			Settings::set_setting( Settings::CSV_FIELDS, $header );
+		}
+
 		// Skip rows until the offset is reached.
 		$line = 0;
 		while ( $line < $offset && ( $row = fgetcsv( $csv_file ) ) !== false ) {

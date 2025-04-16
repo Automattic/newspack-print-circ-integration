@@ -43,6 +43,19 @@ class Export_Parser {
 			}
 		}
 
+		// Reorder the export_line to match the CSV fields order.
+		$csv_fields_order = Settings::get_setting( Settings::CSV_FIELDS );
+
+		if ( ! empty( $csv_fields_order ) ) {
+			$ordered_line = array_fill_keys( $csv_fields_order, '' );
+			foreach ( $export_line as $key => $value ) {
+				if ( in_array( $key, $csv_fields_order ) ) {
+					$ordered_line[ $key ] = $value;
+				}
+			}
+			$export_line = $ordered_line;
+		}
+
 		return $export_line;
 	}
 }

@@ -30,6 +30,11 @@ class Settings {
 	const CSV_MAPPING_OPTION = 'csv_mapping';
 
 	/**
+	 * CSV Fields to be exported.
+	 */
+	const CSV_FIELDS = 'csv_fields';
+
+	/**
 	 * Default role to be granted to the imported users.
 	 */
 	const DEFAULT_ROLES_OPTION = 'default_roles';
@@ -519,5 +524,20 @@ class Settings {
 		}
 
 		return $options[ $option ];
+	}
+
+	/**
+	 * Explicitly set a setting value.
+	 *
+	 * @param string $option Option name.
+	 * @param mixed  $value  Option value.
+	 */
+	public static function set_setting( $option, $value ) {
+		$options = get_option( self::SETTINGS_OPTION );
+		if ( ! is_array( $options ) ) {
+			$options = [];
+		}
+		$options[ $option ] = $value;
+		update_option( self::SETTINGS_OPTION, $options );
 	}
 }

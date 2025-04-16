@@ -62,8 +62,8 @@ class Import {
 		$total_processed = 0;
 
 		if ( $is_dry_run ) {
-			$fields = array_keys( Newspack_Fields::get_fields() );
 			$result = $import_module->test_import_users();
+			$fields = array_keys( $result[0] );
 			WP_CLI\Utils\format_items(
 				'table',
 				$result,

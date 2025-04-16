@@ -39,8 +39,12 @@ class Import_Parser {
 		foreach ( $newspack_fields as $key => $field ) {
 			if ( isset( $mapping[ $key ] ) && isset( $line[ $mapping[ $key ] ] ) ) {
 				$parsed_line[ $key ] = $line[ $mapping[ $key ] ];
-			} else {
-				$parsed_line[ $key ] = '';
+			}
+		}
+
+		foreach ( $mapping as $key => $index ) {
+			if ( ! isset( $parsed_line[ $key ] ) && isset( $line[ $index ] ) ) {
+				$parsed_line[ $key ] = $line[ $index ];
 			}
 		}
 

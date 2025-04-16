@@ -26,7 +26,7 @@ class Newspack_Fields {
 	const ZIP_FIELD            = 'zip';
 	const PHONE_FIELD          = 'phone';
 	const STATUS               = 'status';
-	// const EXTRA_FIELD          = 'newspack_circ_extra';
+	const EXTRA_FIELD          = 'newspack_circ_extra';
 
 	/**
 	 * Get the fields to be mapped.
@@ -90,6 +90,11 @@ class Newspack_Fields {
 				'type'     => 'user_meta',
 				'db_field' => 'newspack_print_circ_status',
 			],
+			self::EXTRA_FIELD          => [
+				'label'    => 'Extra Data',
+				'type'     => 'extra_data',
+				'db_field' => 'newspack_circ_extra_data',
+			],
 		];
 	}
 
@@ -123,8 +128,21 @@ class Newspack_Fields {
 		$fields = self::get_fields();
 		$user_array = [];
 		foreach ( $fields as $slug => $field ) {
+			if( self::EXTRA_FIELD === $slug ) {
+				// Skip the extra field as it is handled separately.
+				continue;
+			}
 			$user_array[ $slug ] = self::get_field_value( $slug, $user_id );
 		}
+
+		// Get the extra data field.
+		$extra_field = self::get_field( self::EXTRA_FIELD );
+		$extra_data  = get_user_meta( $user_id, $extra_field['db_field'], true );
+		if ( is_array( $extra_data ) ) {
+			// Merge extra data into the user array.
+			$user_array = array_merge( $user_array, $extra_data );
+		}
+
 		return $user_array;
 	}
 
@@ -150,6 +168,31 @@ class Newspack_Fields {
 			// If its a user property.
 			$user = get_user_by( 'id', $user_id );
 			return $user->{$field['db_field']};
+		} else {
+			// Handle nested extra data
+			$extra_field = self::get_field( self::EXTRA_FIELD );
+			$extra_data  = get_user_meta( $user_id, $extra_field['db_field'], true );
+			
+			if ( ! is_array( $extra_data ) ) {
+				return null;
+			}
+
+			// Check if slug contains nested path (e.g., 'parent.child.key')
+			if ( strpos( $slug, '.' ) !== false ) {
+				$keys  = explode( '.', $slug );
+				$value = $extra_data;
+				
+				foreach ( $keys as $key ) {
+					if ( ! is_array( $value ) || ! isset( $value[ $key ] ) ) {
+						return null;
+					}
+					$value = $value[ $key ];
+				}
+				
+				return $value;
+			}
+			
+			return $extra_data[ $slug ] ?? null;
 		}
 	}
 
@@ -176,6 +219,35 @@ class Newspack_Fields {
 			$user = get_user_by( 'id', $user_id );
 			$user->{$field['db_field']} = $value;
 			wp_update_user( $user );
+		} else {
+			$extra_field = self::get_field( self::EXTRA_FIELD );
+			// Store as a part of the user's extra data.
+			$extra_data = get_user_meta( $user_id, $extra_field['db_field'], true );
+			if ( ! is_array( $extra_data ) ) {
+				$extra_data = [];
+			}
+
+			// Handle nested data
+			if ( strpos( $slug, '.' ) !== false ) {
+				$keys   = explode( '.', $slug );
+				$target = &$extra_data;
+				
+				// Navigate to the nested location
+				foreach ( $keys as $index => $key ) {
+					if ( $index === count( $keys ) - 1 ) {
+						$target[ $key ] = $value;
+					} else {
+						if ( ! isset( $target[ $key ] ) || ! is_array( $target[ $key ] ) ) {
+							$target[ $key ] = [];
+						}
+						$target = &$target[ $key ];
+					}
+				}
+			} else {
+				$extra_data[ $slug ] = $value;
+			}
+
+			update_user_meta( $user_id, $extra_field['db_field'], $extra_data );
 		}
 	}
 }

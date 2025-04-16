@@ -68,17 +68,19 @@ class Settings {
 	 * @var array
 	 */
 	public static $default_mapping = [
-		'circ_id'      => 'Account',
-		'status'       => 'Status',
-		'first_name'   => 'First Name',
-		'last_name'    => 'Last Name',
-		'display_name' => 'Display Name',
-		'email'        => 'Email',
-		'phone'        => 'Phone- Last 4',
-		'address'      => 'Address',
-		'city'         => 'City',
-		'state'        => 'State',
-		'zip'          => 'Zip',
+		'publication_name'        => 'Publication Name',
+		'status'                  => 'Status',
+		'circ_id'                 => 'Account',
+		'first_name'              => 'First Name',
+		'last_name'               => 'Last Name',
+		'display_name'            => 'Display Name',
+		'email'                   => 'Email',
+		'phone'                   => 'Phone- Last 4',
+		'address'                 => 'Address',
+		'city'                    => 'City',
+		'state'                   => 'State',
+		'zip'                     => 'Zip',
+		"subscription_expiration" => "Expiration",
 	];
 
 	/**

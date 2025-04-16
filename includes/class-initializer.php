@@ -7,6 +7,7 @@
 
 namespace Newspack\PrintCirculationIntegration;
 
+use WP_CLI;
 use Newspack\PrintCirculationIntegration\Import as Newspack_Print_Import;
 
 /**
@@ -32,12 +33,13 @@ class Initializer {
 	public function __construct() {
 		// Setup Hooks & Filters.
 		add_action( 'admin_notices', array( __CLASS__, 'show_admin_notice__error' ) );
+		add_action( 'cli_init', array( __CLASS__, 'register_cli_commands' ) );
 
 		/**
 		 * Schedule the cron job.
 		 */
-		add_action( 'update_option_' . Settings::SETTINGS_OPTION, array( __CLASS__, 'schedule_cron_jobs' ), 10, 2 );
-		add_action( self::CRON_JOB_HOOK, array( $this, 'users_import_sync' ) );
+		// add_action( 'update_option_' . Settings::SETTINGS_OPTION, array( __CLASS__, 'schedule_cron_jobs' ), 10, 2 );
+		// add_action( self::CRON_JOB_HOOK, array( $this, 'users_import_sync' ) );
 
 		/**
 		 * TODO: To be scheduled as a cron job. Not on every page load.
@@ -137,13 +139,13 @@ class Initializer {
 			if ( 1 === count( $inactive_plugins ) ) {
 				$plugin_notice = sprintf(
 					/* translators: %s: Plugin name. */
-					esc_html__( 'Newspack Print Circulation Integration requires %s to be installed and activated.', 'newspack-print-circ-integration' ),
+					esc_html__( 'Newspack Print Circulation Integration requires %s to be installed and activated.', 'newspack-print' ),
 					'<strong>' . esc_html( $inactive_plugins[0] ) . '</strong>'
 				);
 			} else {
 				$plugin_notice = sprintf(
 					/* translators: %s: Plugin names. */
-					esc_html__( 'Newspack Print Circulation Integration requires %s to be installed and activated.', 'newspack-print-circ-integration' ),
+					esc_html__( 'Newspack Print Circulation Integration requires %s to be installed and activated.', 'newspack-print' ),
 					'<strong>' . esc_html( implode( ', ', $inactive_plugins ) ) . '</strong>'
 				);
 			}
@@ -187,6 +189,21 @@ class Initializer {
 			wp_clear_scheduled_hook( self::CRON_JOB_HOOK );
 			wp_schedule_event( $cron_job_time, 'daily', self::CRON_JOB_HOOK );
 		}
+	}
+
+	/**
+	 * Register WP-CLI commands.
+	 */
+	public static function register_cli_commands() {
+		if ( ! class_exists( 'WP_CLI' ) ) {
+			return;
+		}
+
+		// Register the CLI command.
+		require_once __DIR__ . '/wp-cli/class-import.php';
+
+		WP_CLI::add_command( 'newspack-print import-users', [ 'Newspack\PrintCirculationIntegration\CLI\Import', 'import_users' ] );
+		WP_CLI::add_command( 'newspack-print export-users', [ 'Newspack\PrintCirculationIntegration\CLI\Export', 'export_users' ] );
 	}
 
 	/**

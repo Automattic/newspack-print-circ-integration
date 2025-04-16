@@ -30,6 +30,11 @@ class Settings {
 	const CSV_MAPPING_OPTION = 'csv_mapping';
 
 	/**
+	 * CSV Fields to be exported.
+	 */
+	const CSV_FIELDS = 'csv_fields';
+
+	/**
 	 * Default role to be granted to the imported users.
 	 */
 	const DEFAULT_ROLES_OPTION = 'default_roles';
@@ -40,7 +45,7 @@ class Settings {
 	const DEFAULT_SUBSCRIPTION_PRODUCTS_OPTION = 'default_subscription_products';
 
 	/**
-	 * TBD. Default memberships to be granted to the imported users.
+	 * Default memberships to be granted to the imported users.
 	 */
 	const DEFAULT_MEMBERSHIPS_OPTION = 'new_users_granted_membership_plan_id';
 
@@ -61,9 +66,78 @@ class Settings {
 	const SYNC_CRON_SCHEDULE = 'newspack_print_circ_sync_cron_schedule';
 
 	/**
-	 * Is logging enabled?
+	 * The mapping of Newspack fields to Print Circulation System fields.
+	 *
+	 * Newspack fields on the left, Print Circulation System fields on the right.
+	 *
+	 * @var array
 	 */
-	const LOGGING_ENABLED_OPTION = 'logging_enabled';
+	public static $default_mapping = [
+		'publication_name'        => 'Publication Name',
+		'status'                  => 'Status',
+		'circ_id'                 => 'Account',
+		'first_name'              => 'First Name',
+		'last_name'               => 'Last Name',
+		'display_name'            => 'Display Name',
+		'email'                   => 'Email',
+		'phone'                   => 'Phone- Last 4',
+		'address'                 => 'Address',
+		'city'                    => 'City',
+		'state'                   => 'State',
+		'zip'                     => 'Zip',
+		'subscription_expiration' => 'Expiration',
+	];
+
+	/**
+	 * Default import transformations.
+	 *
+	 * @var string
+	 */
+	public static $default_import_transformations = 'function( $line ) {
+				// Join the address street name and st number into a single address field.
+				$line["Address"] = $line["Street Name"] . " " . $line["St Num"];
+				unset( $line["Street Name"] );
+				unset( $line["St Num"] );
+
+				// Set display name;
+				if ( ! empty( $line["First Name"] ) || ! empty( $line["Last Name"] ) ) {
+					$line["Display Name"] = sprintf( "%s %s", $line["First Name"], $line["Last Name"] );
+				} elseif ( ! empty( $line["Email"] ) ) {
+					$line["Display Name"] = explode( "@", $line["Email"] )[0];
+				} else {
+					$line["Display Name"] = "";
+				}
+
+				// Set the status to active if not set.
+				$line["Status"] = "Active" === $line["Status"] ? "active" : "paused";
+
+				return $line;
+			}';
+
+	/**
+	 * Default export transformations.
+	 *
+	 * @var string
+	 */
+	public static $default_export_transformations = 'function( $line ) {
+			// Break address into street name and st number using a regex to extract the numeric part.
+			if ( isset( $line["Address"] ) ) {
+				$line["St Num"]      = preg_match("/\\d+$/", $line["Address"], $matches) ? $matches[0] : "";
+				$line["Street Name"] = preg_replace("/\\s*\\d+$/", "", $line["Address"]);
+				unset( $line["Address"] );
+			}
+
+			// Convert status to match import format
+			if ( isset( $line["Status"] ) ) {
+				$line["Status"] = $line["Status"] === true ? "Active" : "Paused";
+			}
+
+			if ( isset( $line["Display Name"] ) ) {
+				unset( $line["Display Name"] );
+			}
+
+			return $line;
+		}';
 
 	/**
 	 * Runs the initialization.
@@ -72,7 +146,6 @@ class Settings {
 		// Setup Hooks & Filters.
 		add_action( 'admin_init', array( __CLASS__, 'register_settings' ) );
 		add_action( 'admin_menu', array( __CLASS__, 'register_settings_page' ) );
-		add_action( 'admin_menu', [ __CLASS__, 'register_logs_page' ] );
 	}
 
 	/**
@@ -107,41 +180,41 @@ class Settings {
 			]
 		);
 
-		add_settings_field(
-			self::CSV_MAPPING_OPTION,
-			__( 'CSV Mapping', 'newspack-print' ),
-			[ __CLASS__, 'render_textarea_field' ],
-			self::SETTINGS_OPTION,
-			'newspack_print_general_settings',
-			[
-				'label_for'   => self::CSV_MAPPING_OPTION,
-				'description' => __( 'Field mapping in JSON format. Make sure to include "circulation_id" as the unique identifier for the mapping', 'newspack-print' ),
-			]
-		);
+		// add_settings_field(
+		// self::CSV_MAPPING_OPTION,
+		// __( 'CSV Mapping', 'newspack-print' ),
+		// [ __CLASS__, 'render_textarea_field' ],
+		// self::SETTINGS_OPTION,
+		// 'newspack_print_general_settings',
+		// [
+		// 'label_for'   => self::CSV_MAPPING_OPTION,
+		// 'description' => __( 'Field mapping in JSON format. Make sure to include "circulation_id" as the unique identifier for the mapping', 'newspack-print' ),
+		// ]
+		// );
 
-		add_settings_field(
-			self::IMPORT_TRANSFORMATIONS_OPTION,
-			__( 'Import Transformations', 'newspack-print' ),
-			[ __CLASS__, 'render_textarea_field' ],
-			self::SETTINGS_OPTION,
-			'newspack_print_general_settings',
-			[
-				'label_for'   => self::IMPORT_TRANSFORMATIONS_OPTION,
-				'description' => __( 'Transformations to apply to the imported data in JSON format.', 'newspack-print' ),
-			]
-		);
+		// add_settings_field(
+		// self::IMPORT_TRANSFORMATIONS_OPTION,
+		// __( 'Import Transformations', 'newspack-print' ),
+		// [ __CLASS__, 'render_textarea_field' ],
+		// self::SETTINGS_OPTION,
+		// 'newspack_print_general_settings',
+		// [
+		// 'label_for'   => self::IMPORT_TRANSFORMATIONS_OPTION,
+		// 'description' => __( 'Transformations to apply to the imported data in JSON format.', 'newspack-print' ),
+		// ]
+		// );
 
-		add_settings_field(
-			self::EXPORT_TRANSFORMATIONS_OPTION,
-			__( 'Export Transformations', 'newspack-print' ),
-			[ __CLASS__, 'render_textarea_field' ],
-			self::SETTINGS_OPTION,
-			'newspack_print_general_settings',
-			[
-				'label_for'   => self::EXPORT_TRANSFORMATIONS_OPTION,
-				'description' => __( 'Transformations to apply to the exported data in JSON format.', 'newspack-print' ),
-			]
-		);
+		// add_settings_field(
+		// self::EXPORT_TRANSFORMATIONS_OPTION,
+		// __( 'Export Transformations', 'newspack-print' ),
+		// [ __CLASS__, 'render_textarea_field' ],
+		// self::SETTINGS_OPTION,
+		// 'newspack_print_general_settings',
+		// [
+		// 'label_for'   => self::EXPORT_TRANSFORMATIONS_OPTION,
+		// 'description' => __( 'Transformations to apply to the exported data in JSON format.', 'newspack-print' ),
+		// ]
+		// );
 
 		add_settings_field(
 			self::SYNC_CRON_SCHEDULE,
@@ -152,18 +225,6 @@ class Settings {
 			[
 				'label_for'   => self::SYNC_CRON_SCHEDULE,
 				'description' => __( 'Schedule for the Print Circulation System users sync.', 'newspack-print' ),
-			]
-		);
-
-		add_settings_field(
-			self::LOGGING_ENABLED_OPTION,
-			__( 'Enable Logging?', 'newspack-print' ),
-			[ __CLASS__, 'render_checkbox_field' ],
-			self::SETTINGS_OPTION,
-			'newspack_print_general_settings',
-			[
-				'label_for'   => self::LOGGING_ENABLED_OPTION,
-				'description' => __( 'Enable logging for the integration.', 'newspack-print' ),
 			]
 		);
 
@@ -190,20 +251,20 @@ class Settings {
 		);
 
 		// Allowed Subscriptions.
-		if ( class_exists( 'WC_Subscriptions' ) ) {
-			add_settings_field(
-				self::DEFAULT_SUBSCRIPTION_PRODUCTS_OPTION,
-				__( 'Default user subscriptions', 'newspack-print' ),
-				[ __CLASS__, 'render_multiselect_field' ],
-				self::SETTINGS_OPTION,
-				'newspack_print_access_criteria',
-				[
-					'label_for'   => self::DEFAULT_SUBSCRIPTION_PRODUCTS_OPTION,
-					'description' => __( 'Select WooCommerce Subscriptions to be granted to the imported users.', 'newspack-print' ),
-					'options'     => self::get_woocommerce_subscription_products_options(),
-				]
-			);
-		}
+		// if ( class_exists( 'WC_Subscriptions' ) ) {
+		// add_settings_field(
+		// self::DEFAULT_SUBSCRIPTION_PRODUCTS_OPTION,
+		// __( 'Default user subscriptions', 'newspack-print' ),
+		// [ __CLASS__, 'render_multiselect_field' ],
+		// self::SETTINGS_OPTION,
+		// 'newspack_print_access_criteria',
+		// [
+		// 'label_for'   => self::DEFAULT_SUBSCRIPTION_PRODUCTS_OPTION,
+		// 'description' => __( 'Select WooCommerce Subscriptions to be granted to the imported users.', 'newspack-print' ),
+		// 'options'     => self::get_woocommerce_subscription_products_options(),
+		// ]
+		// );
+		// }
 
 		// Allowed Memberships.
 		if ( class_exists( 'WC_Memberships' ) ) {
@@ -384,11 +445,6 @@ class Settings {
 			$sanitized[ self::SYNC_CRON_SCHEDULE ] = sanitize_text_field( $input[ self::SYNC_CRON_SCHEDULE ] );
 		}
 
-		// Sanitize logging enabled.
-		if ( isset( $input[ self::LOGGING_ENABLED_OPTION ] ) ) {
-			$sanitized[ self::LOGGING_ENABLED_OPTION ] = (bool) $input[ self::LOGGING_ENABLED_OPTION ];
-		}
-
 		return $sanitized;
 	}
 
@@ -449,6 +505,18 @@ class Settings {
 	 * @return mixed|null Option value.
 	 */
 	public static function get_setting( $option ) {
+
+		// Not using UI yet to set up mapping and transformations.
+		if ( self::CSV_MAPPING_OPTION === $option ) {
+			return wp_json_encode( self::$default_mapping );
+		}
+		if ( self::IMPORT_TRANSFORMATIONS_OPTION === $option ) {
+			return self::$default_import_transformations;
+		}
+		if ( self::EXPORT_TRANSFORMATIONS_OPTION === $option ) {
+			return self::$default_export_transformations;
+		}
+
 		$options = get_option( self::SETTINGS_OPTION );
 
 		if ( ! isset( $options[ $option ] ) ) {
@@ -459,63 +527,17 @@ class Settings {
 	}
 
 	/**
-	 * Register the logs sub-page.
+	 * Explicitly set a setting value.
+	 *
+	 * @param string $option Option name.
+	 * @param mixed  $value  Option value.
 	 */
-	public static function register_logs_page() {
-		add_submenu_page(
-			self::SETTINGS_OPTION,
-			__( 'Newspack Print Logs', 'newspack-print' ),
-			__( 'Logs', 'newspack-print' ),
-			'manage_options',
-			'newspack_print_logs',
-			[ __CLASS__, 'render_logs_page' ]
-		);
-	}
-
-	/**
-	 * Render the logs page.
-	 */
-	public static function render_logs_page() {
-		$logs = Logger::get_logs();
-		?>
-		<div class="wrap">
-			<h1><?php esc_html_e( 'Newspack Print Logs', 'newspack-print' ); ?></h1>
-			<table class="widefat fixed" cellspacing="0">
-				<thead>
-					<tr>
-						<th><?php esc_html_e( 'Time', 'newspack-print' ); ?></th>
-						<th><?php esc_html_e( 'Message', 'newspack-print' ); ?></th>
-					</tr>
-				</thead>
-				<tbody>
-					<?php if ( empty( $logs ) ) : ?>
-						<tr>
-							<td colspan="2"><?php esc_html_e( 'No logs available.', 'newspack-print' ); ?></td>
-						</tr>
-					<?php else : ?>
-						<?php foreach ( $logs as $log ) : ?>
-							<tr>
-								<td><?php echo esc_html( $log['time'] ); ?></td>
-								<td><?php echo esc_html( $log['message'] ); ?></td>
-							</tr>
-						<?php endforeach; ?>
-					<?php endif; ?>
-				</tbody>
-			</table>
-			<div class="tablenav bottom">
-				<form method="post" action="">
-					<?php wp_nonce_field( 'clear_logs_action', 'clear_logs_nonce' ); ?>
-					<input type="submit" name="clear_logs" class="button button-secondary" value="<?php esc_attr_e( 'Clear Logs', 'newspack-print' ); ?>">
-				</form>
-			</div>
-		</div>
-		<?php
-
-		// Handle log clearing.
-		if ( isset( $_POST['clear_logs'] ) && check_admin_referer( 'clear_logs_action', 'clear_logs_nonce' ) ) {
-			Logger::clear_logs();
-			wp_safe_redirect( admin_url( 'admin.php?page=newspack_print_logs' ) );
-			exit;
+	public static function set_setting( $option, $value ) {
+		$options = get_option( self::SETTINGS_OPTION );
+		if ( ! is_array( $options ) ) {
+			$options = [];
 		}
+		$options[ $option ] = $value;
+		update_option( self::SETTINGS_OPTION, $options );
 	}
 }

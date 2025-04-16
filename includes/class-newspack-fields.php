@@ -43,12 +43,12 @@ class Newspack_Fields {
 			self::FIRST_NAME_FIELD     => [
 				'label'    => 'First Name',
 				'type'     => 'user_meta',
-				'db_field' => 'newspack_print_circ_billing_first_name',
+				'db_field' => 'billing_first_name',
 			],
 			self::LAST_NAME_FIELD      => [
 				'label'    => 'Last Name',
 				'type'     => 'user_meta',
-				'db_field' => 'newspack_print_circ_billing_last_name',
+				'db_field' => 'billing_last_name',
 			],
 			self::DISPLAY_NAME_FIELD   => [
 				'label'    => 'Display Name',
@@ -63,27 +63,27 @@ class Newspack_Fields {
 			self::ADDRESS_FIELD        => [
 				'label'    => 'Address',
 				'type'     => 'user_meta',
-				'db_field' => 'newspack_print_circ_billing_address_1',
+				'db_field' => 'billing_address_1',
 			],
 			self::CITY_FIELD           => [
 				'label'    => 'City',
 				'type'     => 'user_meta',
-				'db_field' => 'newspack_print_circ_billing_city',
+				'db_field' => 'billing_city',
 			],
 			self::STATE_FIELD          => [
 				'label'    => 'State',
 				'type'     => 'user_meta',
-				'db_field' => 'newspack_print_circ_billing_state',
+				'db_field' => 'billing_state',
 			],
 			self::ZIP_FIELD            => [
 				'label'    => 'Zip',
 				'type'     => 'user_meta',
-				'db_field' => 'newspack_print_circ_billing_postcode',
+				'db_field' => 'billing_postcode',
 			],
 			self::PHONE_FIELD          => [
 				'label'    => 'Phone',
 				'type'     => 'user_meta',
-				'db_field' => 'newspack_print_circ_billing_phone',
+				'db_field' => 'billing_phone',
 			],
 			self::STATUS               => [
 				'label'    => 'Status',
@@ -106,7 +106,7 @@ class Newspack_Fields {
 	 */
 	public static function get_field( $slug ) {
 		$fields = self::get_fields();
-		
+
 		if ( isset( $fields[ $slug ] ) ) {
 			return $fields[ $slug ];
 		}
@@ -128,8 +128,21 @@ class Newspack_Fields {
 		$fields = self::get_fields();
 		$user_array = [];
 		foreach ( $fields as $slug => $field ) {
+			if( self::EXTRA_FIELD === $slug ) {
+				// Skip the extra field as it is handled separately.
+				continue;
+			}
 			$user_array[ $slug ] = self::get_field_value( $slug, $user_id );
 		}
+
+		// Get the extra data field.
+		$extra_field = self::get_field( self::EXTRA_FIELD );
+		$extra_data  = get_user_meta( $user_id, $extra_field['db_field'], true );
+		if ( is_array( $extra_data ) ) {
+			// Merge extra data into the user array.
+			$user_array = array_merge( $user_array, $extra_data );
+		}
+
 		return $user_array;
 	}
 
@@ -156,12 +169,29 @@ class Newspack_Fields {
 			$user = get_user_by( 'id', $user_id );
 			return $user->{$field['db_field']};
 		} else {
-			// Retrieve from the user's extra data.
+			// Handle nested extra data.
 			$extra_field = self::get_field( self::EXTRA_FIELD );
-			$extra_data = get_user_meta( $user_id, $extra_field['db_field'], true );
+			$extra_data  = get_user_meta( $user_id, $extra_field['db_field'], true );
+
 			if ( ! is_array( $extra_data ) ) {
-				$extra_data = [];
+				return null;
 			}
+
+			// Check if slug contains nested path (e.g., 'parent.child.key').
+			if ( strpos( $slug, '.' ) !== false ) {
+				$keys  = explode( '.', $slug );
+				$value = $extra_data;
+
+				foreach ( $keys as $key ) {
+					if ( ! is_array( $value ) || ! isset( $value[ $key ] ) ) {
+						return null;
+					}
+					$value = $value[ $key ];
+				}
+
+				return $value;
+			}
+
 			return $extra_data[ $slug ] ?? null;
 		}
 	}
@@ -196,7 +226,27 @@ class Newspack_Fields {
 			if ( ! is_array( $extra_data ) ) {
 				$extra_data = [];
 			}
-			$extra_data[ $slug ] = $value;
+
+			// Handle nested data.
+			if ( strpos( $slug, '.' ) !== false ) {
+				$keys   = explode( '.', $slug );
+				$target = &$extra_data;
+
+				// Navigate to the nested location.
+				foreach ( $keys as $index => $key ) {
+					if ( $index === count( $keys ) - 1 ) {
+						$target[ $key ] = $value;
+					} else {
+						if ( ! isset( $target[ $key ] ) || ! is_array( $target[ $key ] ) ) {
+							$target[ $key ] = [];
+						}
+						$target = &$target[ $key ];
+					}
+				}
+			} else {
+				$extra_data[ $slug ] = $value;
+			}
+
 			update_user_meta( $user_id, $extra_field['db_field'], $extra_data );
 		}
 	}

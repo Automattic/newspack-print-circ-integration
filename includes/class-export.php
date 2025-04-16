@@ -79,7 +79,7 @@ class Export {
 
 			$export_line = Export_Parser::parse_line( $user_data );
 
-			Logger::add_log( sprintf( 'Exporting user %d: %s', $user->ID, print_r( $export_line, true ) ) );
+			Logger::add_log( sprintf( 'Exporting user %d: %s', $user->ID, print_r( $export_line, true ) ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
 
 			if ( $add_headers ) {
 				// Add headers only once.

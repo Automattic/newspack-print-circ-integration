@@ -169,29 +169,29 @@ class Newspack_Fields {
 			$user = get_user_by( 'id', $user_id );
 			return $user->{$field['db_field']};
 		} else {
-			// Handle nested extra data
+			// Handle nested extra data.
 			$extra_field = self::get_field( self::EXTRA_FIELD );
 			$extra_data  = get_user_meta( $user_id, $extra_field['db_field'], true );
-			
+
 			if ( ! is_array( $extra_data ) ) {
 				return null;
 			}
 
-			// Check if slug contains nested path (e.g., 'parent.child.key')
+			// Check if slug contains nested path (e.g., 'parent.child.key').
 			if ( strpos( $slug, '.' ) !== false ) {
 				$keys  = explode( '.', $slug );
 				$value = $extra_data;
-				
+
 				foreach ( $keys as $key ) {
 					if ( ! is_array( $value ) || ! isset( $value[ $key ] ) ) {
 						return null;
 					}
 					$value = $value[ $key ];
 				}
-				
+
 				return $value;
 			}
-			
+
 			return $extra_data[ $slug ] ?? null;
 		}
 	}
@@ -227,12 +227,12 @@ class Newspack_Fields {
 				$extra_data = [];
 			}
 
-			// Handle nested data
+			// Handle nested data.
 			if ( strpos( $slug, '.' ) !== false ) {
 				$keys   = explode( '.', $slug );
 				$target = &$extra_data;
-				
-				// Navigate to the nested location
+
+				// Navigate to the nested location.
 				foreach ( $keys as $index => $key ) {
 					if ( $index === count( $keys ) - 1 ) {
 						$target[ $key ] = $value;

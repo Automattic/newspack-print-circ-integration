@@ -345,9 +345,6 @@ class Import {
 			if ( is_wp_error( $grant_membership ) ) {
 				Logger::add_log( 'Failed to grant membership access to user: ' . $user_id );
 				return;
-			} elseif ( false === $grant_membership ) {
-				Logger::add_log( 'No new membership access granted to user: ' . $user_id );
-				return;
 			}
 		}
 	}

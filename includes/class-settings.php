@@ -88,17 +88,17 @@ class Settings {
 	 */
 	public static $default_import_transformations = 'function( $line ) {
 				// Join the address street name and st number into a single address field.
-				$line["address"] = $line["Street Name"] . " " . $line["St Num"];
+				$line["Address"] = $line["Street Name"] . " " . $line["St Num"];
 				unset( $line["Street Name"] );
 				unset( $line["St Num"] );
 
 				// Set display name;
 				if ( ! empty( $line["First Name"] ) || ! empty( $line["Last Name"] ) ) {
-					$line["display_name"] = sprintf( "%s %s", $line["First Name"], $line["Last Name"] );
+					$line["Display Name"] = sprintf( "%s %s", $line["First Name"], $line["Last Name"] );
 				} elseif ( ! empty( $line["Email"] ) ) {
-					$line["display_name"] = explode( "@", $line["Email"] )[0];
+					$line["Display Name"] = explode( "@", $line["Email"] )[0];
 				} else {
-					$line["display_name"] = "Mystery Subscriber";
+					$line["Display Name"] = "Mystery Subscriber";
 				}
 
 				// Set the status to active if not set.
@@ -123,6 +123,10 @@ class Settings {
 			// Convert status to match import format
 			if ( isset( $line["Status"] ) ) {
 				$line["Status"] = $line["Status"] === true ? "Active" : "Paused";
+			}
+
+			if ( isset( $line["Display Name"] ) ) {
+				unset( $line["Display Name"] );
 			}
 
 			return $line;

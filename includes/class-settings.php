@@ -240,20 +240,20 @@ class Settings {
 		);
 
 		// Allowed Subscriptions.
-		if ( class_exists( 'WC_Subscriptions' ) ) {
-			add_settings_field(
-				self::DEFAULT_SUBSCRIPTION_PRODUCTS_OPTION,
-				__( 'Default user subscriptions', 'newspack-print' ),
-				[ __CLASS__, 'render_multiselect_field' ],
-				self::SETTINGS_OPTION,
-				'newspack_print_access_criteria',
-				[
-					'label_for'   => self::DEFAULT_SUBSCRIPTION_PRODUCTS_OPTION,
-					'description' => __( 'Select WooCommerce Subscriptions to be granted to the imported users.', 'newspack-print' ),
-					'options'     => self::get_woocommerce_subscription_products_options(),
-				]
-			);
-		}
+		// if ( class_exists( 'WC_Subscriptions' ) ) {
+		// 	add_settings_field(
+		// 		self::DEFAULT_SUBSCRIPTION_PRODUCTS_OPTION,
+		// 		__( 'Default user subscriptions', 'newspack-print' ),
+		// 		[ __CLASS__, 'render_multiselect_field' ],
+		// 		self::SETTINGS_OPTION,
+		// 		'newspack_print_access_criteria',
+		// 		[
+		// 			'label_for'   => self::DEFAULT_SUBSCRIPTION_PRODUCTS_OPTION,
+		// 			'description' => __( 'Select WooCommerce Subscriptions to be granted to the imported users.', 'newspack-print' ),
+		// 			'options'     => self::get_woocommerce_subscription_products_options(),
+		// 		]
+		// 	);
+		// }
 
 		// Allowed Memberships.
 		if ( class_exists( 'WC_Memberships' ) ) {

@@ -98,6 +98,48 @@ class Export {
 	}
 
 	/**
+	 * Test export users.
+	 *
+	 * @param int $batch_size Batch size.
+	 * @param int $offset Offset.
+	 * @return bool|array False if no users, array of user data if successful.
+	 */
+	public function test_export_users( $batch_size = 20, $offset = 0 ) {
+		$users = get_users( [
+			'number'   => $batch_size,
+			'offset'   => $offset,
+			'meta_key' => Newspack_Fields::get_field( Newspack_Fields::CIRCULATION_ID_FIELD )['db_field'],
+		] );
+
+		if ( empty( $users ) ) {
+			return false;
+		}
+
+		$export_data = [];
+
+		foreach ( $users as $user ) {
+			$user_data = Newspack_Fields::get_user_as_array( $user->ID );
+
+			// Update Status.
+			$user_data[ Newspack_Fields::STATUS ] = Access_Manager::get_user_export_status( $user->ID );
+
+			$export_line = Export_Parser::parse_line( $user_data );
+
+			Logger::add_log( sprintf( 'Exporting user %d: %s', $user->ID, print_r( $export_line, true ) ) );
+
+			if ( ! empty( $export_line ) ) {
+				$export_data[] = $export_line;
+			}
+		}
+
+		if ( empty( $export_data ) ) {
+			return false;
+		}
+
+		return $export_data;
+	}
+
+	/**
 	 * Initialize CSV file with headers.
 	 */
 	private function initialize_csv() {

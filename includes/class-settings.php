@@ -30,6 +30,11 @@ class Settings {
 	const CSV_MAPPING_OPTION = 'csv_mapping';
 
 	/**
+	 * CSV Fields to be exported.
+	 */
+	const CSV_FIELDS = 'csv_fields';
+
+	/**
 	 * Default role to be granted to the imported users.
 	 */
 	const DEFAULT_ROLES_OPTION = 'default_roles';
@@ -68,17 +73,19 @@ class Settings {
 	 * @var array
 	 */
 	public static $default_mapping = [
-		'circ_id'      => 'Account',
-		'status'       => 'Status',
-		'first_name'   => 'First Name',
-		'last_name'    => 'Last Name',
-		'display_name' => 'Display Name',
-		'email'        => 'Email',
-		'phone'        => 'Phone- Last 4',
-		'address'      => 'Address',
-		'city'         => 'City',
-		'state'        => 'State',
-		'zip'          => 'Zip',
+		'publication_name'        => 'Publication Name',
+		'status'                  => 'Status',
+		'circ_id'                 => 'Account',
+		'first_name'              => 'First Name',
+		'last_name'               => 'Last Name',
+		'display_name'            => 'Display Name',
+		'email'                   => 'Email',
+		'phone'                   => 'Phone- Last 4',
+		'address'                 => 'Address',
+		'city'                    => 'City',
+		'state'                   => 'State',
+		'zip'                     => 'Zip',
+		"subscription_expiration" => "Expiration",
 	];
 
 	/**
@@ -517,5 +524,20 @@ class Settings {
 		}
 
 		return $options[ $option ];
+	}
+
+	/**
+	 * Explicitly set a setting value.
+	 *
+	 * @param string $option Option name.
+	 * @param mixed  $value  Option value.
+	 */
+	public static function set_setting( $option, $value ) {
+		$options = get_option( self::SETTINGS_OPTION );
+		if ( ! is_array( $options ) ) {
+			$options = [];
+		}
+		$options[ $option ] = $value;
+		update_option( self::SETTINGS_OPTION, $options );
 	}
 }

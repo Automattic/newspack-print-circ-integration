@@ -134,7 +134,7 @@ class Export {
 			$exported_users,
 			$header
 		);
-		Logger::add_log( 'Test export completed. No changes made to the database.' );
+		Logger::add_log( 'Test export completed. Nothing was written to any CSV file.' );
 
 		Logger::add_log( sprintf( 'Test exported a total of %d users via CLI.', $total_exported ) );
 	}

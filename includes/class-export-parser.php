@@ -28,9 +28,21 @@ class Export_Parser {
 
 		// Map fields to CSV format.
 		$export_line = [];
+
+		// Handle mapped fields.
 		foreach ( $user_data as $key => $value ) {
+			if ( Newspack_Fields::EXTRA_FIELD === $key ) {
+				continue;
+			}
 			if ( isset( $mapping[ $key ] ) ) {
 				$export_line[ $mapping[ $key ] ] = $value;
+			}
+		}
+
+		// Handle extra fields - add them directly with their original headers.
+		if ( isset( $user_data[ Newspack_Fields::EXTRA_FIELD ] ) && is_array( $user_data[ Newspack_Fields::EXTRA_FIELD ] ) ) {
+			foreach ( $user_data[ Newspack_Fields::EXTRA_FIELD ] as $header => $value ) {
+				$export_line[ $header ] = $value;
 			}
 		}
 

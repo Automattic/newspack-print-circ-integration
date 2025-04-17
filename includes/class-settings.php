@@ -73,7 +73,6 @@ class Settings {
 	 * @var array
 	 */
 	public static $default_mapping = [
-		'publication_name'        => 'Publication Name',
 		'status'                  => 'Status',
 		'circ_id'                 => 'Account',
 		'first_name'              => 'First Name',
@@ -85,7 +84,6 @@ class Settings {
 		'city'                    => 'City',
 		'state'                   => 'State',
 		'zip'                     => 'Zip',
-		'subscription_expiration' => 'Expiration',
 	];
 
 	/**

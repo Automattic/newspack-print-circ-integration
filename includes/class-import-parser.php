@@ -42,10 +42,14 @@ class Import_Parser {
 			}
 		}
 
-		foreach ( $mapping as $key => $index ) {
-			if ( ! isset( $parsed_line[ $key ] ) && isset( $line[ $index ] ) ) {
-				$parsed_line[ $key ] = $line[ $index ];
+		foreach ( $line as $header => $value ) {
+			if ( ! in_array( $header, $mapping ) ) {
+				$extra_fields[ $header ] = $value;
 			}
+		}
+
+		if ( ! empty( $extra_fields ) ) {
+			$parsed_line[ Newspack_Fields::EXTRA_FIELD ] = $extra_fields;
 		}
 
 		return $parsed_line;
